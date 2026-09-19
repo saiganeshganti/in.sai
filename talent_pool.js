@@ -51,6 +51,9 @@ async function loadTalentPool() {
         const response =
             await fetch(`${API_BASE_URL}/candidates`);
 
+console.log("Talent Pool response status:", response.status);
+console.log("Talent Pool response URL:", response.url);
+
 
         if (!response.ok) {
 
