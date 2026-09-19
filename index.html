@@ -1831,6 +1831,19 @@
 
         document.addEventListener("DOMContentLoaded", function () {
 
+            /*
+             * FIX: point every candidate API call at the
+             * Render backend, not the Netlify frontend origin.
+             * Previously these used relative fetch("/candidates"),
+             * which on Netlify resolves to
+             * https://insaiairecruiter.netlify.app/candidates
+             * (a route that doesn't exist there) -> 404.
+             * This duplicate script also runs AFTER app.js/talent.js,
+             * so it was overwriting the correct loadTalentPool()
+             * with this broken one.
+             */
+            const API_BASE_URL = "https://in-sai.onrender.com";
+
             const searchNav =
                 document.getElementById("searchNav");
 
@@ -1990,7 +2003,7 @@
                 try {
 
                     const response =
-                        await fetch("/candidates");
+                        await fetch(`${API_BASE_URL}/candidates`);
 
 
                     if (!response.ok) {
@@ -2205,7 +2218,7 @@
 
                         const response =
                             await fetch(
-                                `/candidates/${candidateId}`,
+                                `${API_BASE_URL}/candidates/${candidateId}`,
                                 {
                                     method: "DELETE"
                                 }
@@ -2305,7 +2318,7 @@
                 try {
 
                     const response =
-                        await fetch("/candidates");
+                        await fetch(`${API_BASE_URL}/candidates`);
 
 
                     if (!response.ok) {
@@ -2487,7 +2500,7 @@
 
                         const response =
                             await fetch(
-                                "/generate-email",
+                                `${API_BASE_URL}/generate-email`,
                                 {
                                     method: "POST",
 
