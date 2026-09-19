@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>In SAI AI | Candidate Outreach</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 18px 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .back-btn {
+            text-decoration: none;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            color: #2563eb;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .page-title {
+            margin-bottom: 25px;
+        }
+
+        .page-title h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        .page-title p {
+            color: #6b7280;
+            font-size: 15px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #111827;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 7px;
+            color: #374151;
+        }
+
+        select,
+        input,
+        textarea {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 7px;
+            padding: 11px 12px;
+            margin-bottom: 18px;
+            font-size: 14px;
+            outline: none;
+            background: #ffffff;
+        }
+
+        select:focus,
+        input:focus,
+        textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+        }
+
+        textarea {
+            min-height: 330px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .candidate-info {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #eef2f7;
+        }
+
+        .candidate-name {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 7px;
+            color: #111827;
+        }
+
+        .candidate-detail {
+            color: #6b7280;
+            font-size: 13px;
+            margin-top: 5px;
+            line-height: 1.5;
+        }
+
+        .candidate-email {
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        .generate-btn {
+            width: 100%;
+            border: none;
+            border-radius: 7px;
+            padding: 13px;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        .generate-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .copy-btn,
+        .gmail-btn,
+        .draft-btn {
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            padding: 10px 15px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: 0.2s ease;
+        }
+
+        .copy-btn:hover:not(:disabled) {
+            background: #f3f4f6;
+        }
+
+        .gmail-btn {
+            background: #ea4335;
+            color: #ffffff;
+            border-color: #ea4335;
+        }
+
+        .gmail-btn:hover:not(:disabled) {
+            background: #d93025;
+            border-color: #d93025;
+        }
+
+        .draft-btn {
+            background: #f8fafc;
+            color: #374151;
+        }
+
+        .draft-btn:hover:not(:disabled) {
+            background: #e5e7eb;
+        }
+
+        .copy-btn:disabled,
+        .gmail-btn:disabled,
+        .draft-btn:disabled {
+            background: #e5e7eb;
+            color: #9ca3af;
+            border-color: #e5e7eb;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 7px;
+            display: none;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .status.success {
+            display: block;
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .status.error {
+            display: block;
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .status.info {
+            display: block;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .empty {
+            color: #6b7280;
+            font-size: 14px;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        .email-help {
+            margin-top: 14px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.5;
+            border: 1px solid #e5e7eb;
+        }
+
+        .email-help strong {
+            color: #374151;
+        }
+
+        .generated-indicator {
+            display: none;
+            margin-bottom: 15px;
+            padding: 9px 12px;
+            border-radius: 7px;
+            background: #ecfdf5;
+            color: #047857;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .generated-indicator.show {
+            display: block;
+        }
+
+        @media (max-width: 800px) {
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 15px 20px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .copy-btn,
+            .gmail-btn,
+            .draft-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+<header class="header">
+
+    <div class="logo">
+        In SAI AI
+    </div>
+
+    <a href="/talent-pool" class="back-btn">
+        ← Back to Talent Pool
+    </a>
+
+</header>
+
+
+<main class="container">
+
+    <div class="page-title">
+
+        <h1>
+            AI-Powered Candidate Outreach
+        </h1>
+
+        <p>
+            Create professional, personalized recruitment emails
+            for candidates in your Talent Pool.
+        </p>
+
+    </div>
+
+
+    <div class="grid">
+
+        <!-- ==========================================
+             LEFT SIDE
+        =========================================== -->
+
+        <div class="card">
+
+            <h2>
+                Candidate
+            </h2>
+
+
+            <select id="candidateSelect">
+
+                <option value="">
+                    Loading candidates...
+                </option>
+
+            </select>
+
+
+            <div id="candidateInfo" class="candidate-info">
+
+                <div class="empty">
+                    Select a candidate to continue.
+                </div>
+
+            </div>
+
+
+            <label for="emailType">
+                Email Type
+            </label>
+
+            <select id="emailType">
+
+                <option value="initial_outreach">
+                    Initial Outreach
+                </option>
+
+                <option value="internship">
+                    Internship Opportunity
+                </option>
+
+                <option value="interview">
+                    Interview Invitation
+                </option>
+
+                <option value="follow_up">
+                    Follow-up
+                </option>
+
+                <option value="shortlist">
+                    Shortlist / Next Steps
+                </option>
+
+            </select>
+
+
+            <label for="tone">
+                Email Tone
+            </label>
+
+            <select id="tone">
+
+                <option value="professional">
+                    Professional
+                </option>
+
+                <option value="formal">
+                    Formal
+                </option>
+
+                <option value="friendly">
+                    Professional & Friendly
+                </option>
+
+                <option value="concise">
+                    Concise
+                </option>
+
+            </select>
+
+
+            <button
+                id="generateBtn"
+                class="generate-btn"
+                type="button"
+                disabled
+            >
+                Generate AI Email
+            </button>
+
+
+            <div id="status" class="status"></div>
+
+        </div>
+
+
+        <!-- ==========================================
+             RIGHT SIDE
+        =========================================== -->
+
+        <div class="card">
+
+            <h2>
+                Generated Email
+            </h2>
+
+
+            <div
+                id="generatedIndicator"
+                class="generated-indicator"
+            >
+                ✓ AI-generated email ready
+            </div>
+
+
+            <label for="subject">
+                Subject
+            </label>
+
+            <input
+                type="text"
+                id="subject"
+                placeholder="AI-generated professional subject will appear here"
+            >
+
+
+            <label for="emailBody">
+                Email Body
+            </label>
+
+            <textarea
+                id="emailBody"
+                placeholder="Your personalized recruitment email will appear here..."
+            ></textarea>
+
+
+            <div class="actions">
+
+                <button
+                    id="copyBtn"
+                    class="copy-btn"
+                    type="button"
+                    disabled
+                >
+                    Copy Email
+                </button>
+
+
+                <button
+                    id="gmailBtn"
+                    class="gmail-btn"
+                    type="button"
+                    disabled
+                >
+                    Open in Gmail
+                </button>
+
+
+                <button
+                    id="draftBtn"
+                    class="draft-btn"
+                    type="button"
+                    disabled
+                >
+                    Save as Draft
+                </button>
+
+            </div>
+
+
+            <div class="email-help">
+
+                <strong>Open in Gmail:</strong>
+                Opens Gmail with the candidate's email,
+                AI-generated subject, and email body already
+                filled in.
+
+                <br><br>
+
+                <strong>Save as Draft:</strong>
+                Opens Gmail with the prepared email.
+                You can close the compose window and Gmail
+                will save it as a draft.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+<script>
+
+    const API_BASE_URL = "https://sai-ai-recruiter-backend.onrender.com";
+
+    // =====================================================
+    // GLOBAL VARIABLES
+    // =====================================================
+
+    let candidates = [];
+    let selectedCandidate = null;
+    let emailGenerated = false;
+
+
+    // =====================================================
+    // GET ELEMENTS
+    // =====================================================
+
+    const candidateSelect =
+        document.getElementById("candidateSelect");
+
+    const candidateInfo =
+        document.getElementById("candidateInfo");
+
+    const generateBtn =
+        document.getElementById("generateBtn");
+
+    const emailType =
+        document.getElementById("emailType");
+
+    const tone =
+        document.getElementById("tone");
+
+    const subjectInput =
+        document.getElementById("subject");
+
+    const emailBody =
+        document.getElementById("emailBody");
+
+    const copyBtn =
+        document.getElementById("copyBtn");
+
+    const gmailBtn =
+        document.getElementById("gmailBtn");
+
+    const draftBtn =
+        document.getElementById("draftBtn");
+
+    const statusBox =
+        document.getElementById("status");
+
+    const generatedIndicator =
+        document.getElementById("generatedIndicator");
+
+
+    // =====================================================
+    // LOAD TALENT POOL CANDIDATES
+    // =====================================================
+
+    async function loadCandidates() {
+
+        candidateSelect.innerHTML =
+            '<option value="">Loading candidates...</option>';
+
+        try {
+
+            const response =
+                await fetch(`${API_BASE_URL}/candidates`, {
+                    method: "GET",
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                });
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to load candidates. Server returned " +
+                    response.status
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            if (!Array.isArray(data)) {
+
+                throw new Error(
+                    "Invalid candidate data received from server."
+                );
+
+            }
+
+
+            candidates = data;
+
+
+            candidateSelect.innerHTML =
+                '<option value="">Select a candidate</option>';
+
+
+            if (candidates.length === 0) {
+
+                candidateSelect.innerHTML =
+                    '<option value="">No candidates available</option>';
+
+                candidateInfo.innerHTML =
+                    '<div class="empty">' +
+                    'No candidates are currently available in your Talent Pool.' +
+                    '</div>';
+
+                generateBtn.disabled = true;
+
+                return;
+            }
+
+
+            candidates.forEach(function(candidate) {
+
+                const option =
+                    document.createElement("option");
+
+
+                option.value =
+                    String(candidate.id);
+
+
+                option.textContent =
+                    candidate.name ||
+                    "Unnamed Candidate";
+
+
+                candidateSelect.appendChild(option);
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "LOAD CANDIDATES ERROR:",
+                error
+            );
+
+
+            candidateSelect.innerHTML =
+                '<option value="">Unable to load candidates</option>';
+
+
+            showStatus(
+                "Unable to load candidates from Talent Pool.",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // CANDIDATE SELECTION
+    // =====================================================
+
+    candidateSelect.addEventListener(
+        "change",
+        function() {
+
+            const selectedId =
+                String(this.value);
+
+
+            selectedCandidate =
+                candidates.find(function(candidate) {
+
+                    return String(candidate.id) === selectedId;
+
+                });
+
+
+            emailGenerated = false;
+
+            disableEmailActions();
+
+            generatedIndicator.classList.remove("show");
+
+
+            subjectInput.value = "";
+
+            emailBody.value = "";
+
+
+            if (!selectedCandidate) {
+
+                candidateInfo.innerHTML =
+                    '<div class="empty">' +
+                    'Select a candidate to continue.' +
+                    '</div>';
+
+                generateBtn.disabled = true;
+
+                return;
+            }
+
+
+            generateBtn.disabled = false;
+
+
+            const name =
+                selectedCandidate.name ||
+                "Candidate";
+
+
+            const role =
+                selectedCandidate.current_role ||
+                selectedCandidate.role ||
+                "Not specified";
+
+
+            const experience =
+                selectedCandidate.experience ||
+                "Not specified";
+
+
+            const skills =
+                selectedCandidate.skills ||
+                "Not specified";
+
+
+            const location =
+                selectedCandidate.city ||
+                selectedCandidate.state ||
+                selectedCandidate.region ||
+                selectedCandidate.location ||
+                "Not specified";
+
+
+            const email =
+                selectedCandidate.email ||
+                "Email not available";
+
+
+            candidateInfo.innerHTML = `
+
+                <div class="candidate-name">
+                    ${escapeHtml(name)}
+                </div>
+
+                <div class="candidate-detail">
+                    Role:
+                    ${escapeHtml(role)}
+                </div>
+
+                <div class="candidate-detail">
+                    Experience:
+                    ${escapeHtml(experience)}
+                </div>
+
+                <div class="candidate-detail">
+                    Skills:
+                    ${escapeHtml(skills)}
+                </div>
+
+                <div class="candidate-detail">
+                    Location:
+                    ${escapeHtml(location)}
+                </div>
+
+                <div class="candidate-detail candidate-email">
+                    Email:
+                    ${escapeHtml(email)}
+                </div>
+
+            `;
+
+
+            showStatus(
+                "Candidate selected. You can now generate the AI email.",
+                "info"
+            );
+
+        }
+    );
+
+
+    // =====================================================
+    // GENERATE AI EMAIL
+    // =====================================================
+
+    generateBtn.addEventListener(
+        "click",
+        async function() {
+
+            if (!selectedCandidate) {
+
+                showStatus(
+                    "Please select a candidate first.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            generateBtn.disabled = true;
+
+            generateBtn.textContent =
+                "Generating...";
+
+
+            emailGenerated = false;
+
+            disableEmailActions();
+
+            generatedIndicator.classList.remove("show");
+
+
+            showStatus(
+                "AI is creating a personalized recruitment email...",
+                "info"
+            );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_BASE_URL}/generate-email`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                "Accept":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                candidate_id:
+                                    selectedCandidate.id,
+
+                                email_type:
+                                    emailType.value,
+
+                                tone:
+                                    tone.value
+
+                            })
+                        }
+                    );
+
+
+                let data;
+
+
+                try {
+
+                    data =
+                        await response.json();
+
+                } catch (jsonError) {
+
+                    throw new Error(
+                        "The server returned an invalid response."
+                    );
+
+                }
+
+
+                if (!response.ok) {
+
+                    let errorMessage =
+                        "Email generation failed.";
+
+
+                    if (data && data.detail) {
+
+                        if (typeof data.detail === "string") {
+
+                            errorMessage =
+                                data.detail;
+
+                        } else {
+
+                            errorMessage =
+                                JSON.stringify(data.detail);
+
+                        }
+
+                    }
+
+
+                    throw new Error(
+                        errorMessage
+                    );
+
+                }
+
+
+                // =================================================
+                // AI SUBJECT
+                // =================================================
+
+                subjectInput.value =
+                    data.subject ||
+                    "";
+
+
+                // =================================================
+                // AI EMAIL BODY
+                // =================================================
+
+                emailBody.value =
+                    data.body ||
+                    data.email_body ||
+                    "";
+
+
+                // =================================================
+                // CHECK RESULT
+                // =================================================
+
+                if (
+                    !subjectInput.value.trim() &&
+                    !emailBody.value.trim()
+                ) {
+
+                    throw new Error(
+                        "AI returned an empty email. Please try again."
+                    );
+
+                }
+
+
+                emailGenerated = true;
+
+                enableEmailActions();
+
+                generatedIndicator.classList.add("show");
+
+
+                showStatus(
+                    "AI-generated recruitment email created successfully.",
+                    "success"
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "GENERATE EMAIL ERROR:",
+                    error
+                );
+
+
+                emailGenerated = false;
+
+                disableEmailActions();
+
+                generatedIndicator.classList.remove("show");
+
+
+                showStatus(
+                    error.message ||
+                    "Unable to generate email.",
+                    "error"
+                );
+
+
+            } finally {
+
+                generateBtn.disabled =
+                    !selectedCandidate;
+
+                generateBtn.textContent =
+                    "Generate AI Email";
+
+            }
+
+        }
+    );
+
+
+    // =====================================================
+    // COPY EMAIL
+    // =====================================================
+
+    copyBtn.addEventListener(
+        "click",
+        async function() {
+
+            const subject =
+                subjectInput.value.trim();
+
+
+            const body =
+                emailBody.value.trim();
+
+
+            if (!subject && !body) {
+
+                showStatus(
+                    "There is no email to copy yet.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            const completeEmail =
+                "Subject: " +
+                subject +
+                "\n\n" +
+                body;
+
+
+            try {
+
+                await navigator.clipboard.writeText(
+                    completeEmail
+                );
+
+
+                showStatus(
+                    "Email copied to clipboard.",
+                    "success"
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "COPY ERROR:",
+                    error
+                );
+
+
+                showStatus(
+                    "Unable to copy email.",
+                    "error"
+                );
+
+            }
+
+        }
+    );
+
+
+    // =====================================================
+    // OPEN IN GMAIL
+    // =====================================================
+
+    gmailBtn.addEventListener(
+        "click",
+        function() {
+
+            openGmailCompose(false);
+
+        }
+    );
+
+
+    // =====================================================
+    // SAVE AS DRAFT
+    // =====================================================
+
+    draftBtn.addEventListener(
+        "click",
+        function() {
+
+            openGmailCompose(true);
+
+        }
+    );
+
+
+    // =====================================================
+    // GMAIL COMPOSE
+    // =====================================================
+
+    function openGmailCompose(isDraft) {
+
+        if (!selectedCandidate) {
+
+            showStatus(
+                "Please select a candidate first.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        const candidateEmail =
+            selectedCandidate.email
+                ? String(
+                    selectedCandidate.email
+                ).trim()
+                : "";
+
+
+        if (!candidateEmail) {
+
+            showStatus(
+                "This candidate does not have an email address in the Talent Pool.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        const subject =
+            subjectInput.value.trim();
+
+
+        const body =
+            emailBody.value.trim();
+
+
+        if (!subject && !body) {
+
+            showStatus(
+                "Please generate the AI email before opening Gmail.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        // =================================================
+        // CORRECT GMAIL COMPOSE URL
+        // =================================================
+
+        const gmailUrl =
+            "https://mail.google.com/mail/?view=cm&fs=1" +
+            "&to=" +
+            encodeURIComponent(candidateEmail) +
+            "&su=" +
+            encodeURIComponent(subject) +
+            "&body=" +
+            encodeURIComponent(body);
+
+
+        console.log(
+            "Gmail URL:",
+            gmailUrl
+        );
+
+
+        // =================================================
+        // OPEN GMAIL
+        // =================================================
+
+        const gmailWindow =
+            window.open(
+                gmailUrl,
+                "_blank"
+            );
+
+
+        // =================================================
+        // POPUP BLOCKED
+        // =================================================
+
+        if (!gmailWindow) {
+
+            showStatus(
+                "Your browser blocked the Gmail window. Please allow pop-ups and try again.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        // =================================================
+        // SUCCESS MESSAGE
+        // =================================================
+
+        if (isDraft) {
+
+            showStatus(
+                "Gmail opened with the email prepared. Close the compose window and Gmail will save it as a draft.",
+                "success"
+            );
+
+        } else {
+
+            showStatus(
+                "Gmail opened with the candidate's email, subject, and AI-generated message filled in.",
+                "success"
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // ENABLE EMAIL BUTTONS
+    // =====================================================
+
+    function enableEmailActions() {
+
+        copyBtn.disabled = false;
+
+        gmailBtn.disabled = false;
+
+        draftBtn.disabled = false;
+
+    }
+
+
+    // =====================================================
+    // DISABLE EMAIL BUTTONS
+    // =====================================================
+
+    function disableEmailActions() {
+
+        copyBtn.disabled = true;
+
+        gmailBtn.disabled = true;
+
+        draftBtn.disabled = true;
+
+    }
+
+
+    // =====================================================
+    // STATUS MESSAGE
+    // =====================================================
+
+    function showStatus(message, type) {
+
+        statusBox.textContent =
+            message;
+
+
+        statusBox.className =
+            "status " +
+            type;
+
+    }
+
+
+    // =====================================================
+    // HTML ESCAPING
+    // =====================================================
+
+    function escapeHtml(value) {
+
+        return String(value)
+
+            .replace(/&/g, "&amp;")
+
+            .replace(/</g, "&lt;")
+
+            .replace(/>/g, "&gt;")
+
+            .replace(/"/g, "&quot;")
+
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    // =====================================================
+    // START APPLICATION
+    // =====================================================
+
+    disableEmailActions();
+
+    loadCandidates();
+
+</script>
+
+</body>
+</html>
