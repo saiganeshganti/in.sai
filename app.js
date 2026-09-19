@@ -1,4 +1,142 @@
-const API_BASE_URL = "https://sai-ai-recruiter-backend.onrender.com";
+const CONFIGURED_API_BASE_URL = "https://sai-ai-recruiter-backend.onrender.com";
+
+/*
+ * API URL
+ * - Use the current origin when the FastAPI backend itself serves the page.
+ * - Otherwise use the deployed Render backend.
+ */
+const API_BASE_URL = (() => {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const port = window.location.port;
+
+    const sameOriginBackend =
+        hostname === "sai-ai-recruiter-backend.onrender.com" ||
+        (
+            (hostname === "localhost" || hostname === "127.0.0.1") &&
+            (port === "8000" || port === "8080")
+        );
+
+    if (
+        (protocol === "http:" || protocol === "https:") &&
+        sameOriginBackend
+    ) {
+        return window.location.origin;
+    }
+
+    return CONFIGURED_API_BASE_URL;
+})();
+
+/*
+ * Central API request helper.
+ *
+ * "TypeError: Failed to fetch" means the browser could not establish the
+ * request. This helper retries temporary network failures, handles Render
+ * cold starts more gracefully, prevents stale cached responses, and gives
+ * the UI a useful error message.
+ */
+async function apiFetch(endpoint, options = {}) {
+
+    const maxAttempts = Number.isInteger(options.maxAttempts)
+        ? Math.max(1, options.maxAttempts)
+        : 3;
+
+    const timeoutMs = Number.isInteger(options.timeoutMs)
+        ? Math.max(5000, options.timeoutMs)
+        : 90000;
+
+    const requestOptions = { ...options };
+
+    delete requestOptions.maxAttempts;
+    delete requestOptions.timeoutMs;
+
+    requestOptions.cache = "no-store";
+
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+
+        const controller = new AbortController();
+
+        const timeoutId =
+            setTimeout(
+                () => controller.abort(),
+                timeoutMs
+            );
+
+        try {
+
+            const response = await fetch(
+                `${API_BASE_URL}${endpoint}`,
+                {
+                    ...requestOptions,
+                    signal: controller.signal
+                }
+            );
+
+            clearTimeout(timeoutId);
+
+            return response;
+
+        } catch (error) {
+
+            clearTimeout(timeoutId);
+
+            lastError = error;
+
+            const temporaryNetworkFailure =
+                error &&
+                (
+                    error.name === "TypeError" ||
+                    error.name === "AbortError"
+                );
+
+            if (
+                !temporaryNetworkFailure ||
+                attempt >= maxAttempts
+            ) {
+                break;
+            }
+
+            const retryDelay =
+                attempt === 1
+                    ? 1500
+                    : attempt === 2
+                        ? 4000
+                        : 7000;
+
+            await new Promise(resolve =>
+                setTimeout(resolve, retryDelay)
+            );
+        }
+    }
+
+    if (
+        lastError &&
+        lastError.name === "AbortError"
+    ) {
+        throw new Error(
+            `The backend did not respond within ` +
+            `${Math.round(timeoutMs / 1000)} seconds. ` +
+            `The Render service may be waking up or unavailable.`
+        );
+    }
+
+    if (
+        lastError &&
+        lastError.name === "TypeError"
+    ) {
+        throw new Error(
+            `Could not connect to the backend at ` +
+            `${API_BASE_URL}. ` +
+            `Check that the backend is running and that CORS ` +
+            `allows this frontend.`
+        );
+    }
+
+    throw lastError ||
+        new Error("Backend request failed.");
+}
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -706,8 +844,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
 
-               const response = await fetch(
-       `${API_BASE_URL}/recruit`,
+               const response = await apiFetch(
+                "/recruit",
              {
                     method: "POST",
 
@@ -781,8 +919,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         </h3>
 
                         <p>
-                            Check that the TalentReach
-                            backend is running.
+                            ${escapeHTML(
+                                error && error.message
+                                    ? error.message
+                                    : "Could not connect to the backend."
+                            )}
                         </p>
 
                     </div>
@@ -1190,8 +1331,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             const response =
-                await fetch(
-                   `${API_BASE_URL}/github/lookup`,
+                await apiFetch(
+                "/github/lookup",
                     {
                         method: "POST",
 
@@ -2208,8 +2349,8 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
 
             const response =
-                await fetch(
-                 `${API_BASE_URL}/candidates`,
+                await apiFetch(
+                "/candidates",
                     {
                         method: "POST",
 
@@ -2363,8 +2504,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
 
-           await fetch(
-    `${API_BASE_URL}/candidates/${candidateId}`,
+           await apiFetch(
+                "/candidates/${candidateId}",
     {
                         method: "DELETE"
                     }
@@ -2887,7 +3028,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
 
             const response =
-    await fetch(`${API_BASE_URL}/candidates`);
+    await apiFetch("/candidates");
 
             if (!response.ok) {
 
@@ -3446,8 +3587,8 @@ ${RECRUITER_BRAND}`;
         try {
 
             const response =
-    await fetch(
-        `${API_BASE_URL}/generate-email`,
+    await apiFetch(
+                "/generate-email",
         {
 
                         method: "POST",
