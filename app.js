@@ -1,4 +1,4 @@
-const CONFIGURED_API_BASE_URL = "https://sai-ai-recruiter-backend.onrender.com";
+const CONFIGURED_API_BASE_URL = "https://in-sai.onrender.com";
 
 /*
  * API URL
