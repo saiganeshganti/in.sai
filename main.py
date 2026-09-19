@@ -349,11 +349,11 @@ app = FastAPI(
 
 CONFIGURED_FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
-    "https://insai-ai-recruiter.netlify.app"
+    "https://insaiairecruiter.netlify.app"
 ).strip().rstrip("/")
 
 ALLOWED_ORIGINS = {
-    "https://insai-ai-recruiter.netlify.app",
+    "https://insaiairecruiter.netlify.app",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:5500",
