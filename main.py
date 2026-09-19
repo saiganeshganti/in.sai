@@ -340,18 +340,43 @@ app = FastAPI(
     version="1.5.0"
 )
 # =========================================================
-# CORS - ALLOW NETLIFY FRONTEND
+# CORS - FRONTEND / LOCAL DEVELOPMENT
 # =========================================================
+# The browser error "TypeError: Failed to fetch" can happen before FastAPI
+# receives the request when the frontend origin is not allowed by CORS.
+# Keep the deployed Netlify frontend and common local development origins
+# explicitly allowed. An optional FRONTEND_URL can also be added to .env.
+
+CONFIGURED_FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "https://insai-ai-recruiter.netlify.app"
+).strip().rstrip("/")
+
+ALLOWED_ORIGINS = {
+    "https://insai-ai-recruiter.netlify.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5500",
+    "http://localhost:8000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5500",
+    "http://127.0.0.1:8000",
+}
+
+if CONFIGURED_FRONTEND_URL:
+    ALLOWED_ORIGINS.add(CONFIGURED_FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://insai-ai-recruiter.netlify.app"
-    ],
+    allow_origins=sorted(ALLOWED_ORIGINS),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
+
+print("CORS ALLOWED ORIGINS:", sorted(ALLOWED_ORIGINS))
 
 # =========================================================
 # DATABASE SESSION
