@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://sai-ai-recruiter-backend.onrender.com";
+const API_BASE_URL = "https://in-sai.onrender.com";
 
 /* =========================================================
    TALENTREACH — TALENT POOL
