@@ -955,6 +955,141 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
+       KEYBOARD SHORTCUT — "/" focuses the search box
+    ===================================================== */
+
+    document.addEventListener("keydown", event => {
+
+        if (event.key !== "/") {
+            return;
+        }
+
+        const active = document.activeElement;
+
+        const isTyping =
+            active &&
+            (
+                active.tagName === "INPUT" ||
+                active.tagName === "TEXTAREA" ||
+                active.isContentEditable
+            );
+
+        if (isTyping || !searchInput) {
+            return;
+        }
+
+        event.preventDefault();
+
+        searchInput.focus();
+    });
+
+
+    /* =====================================================
+       RECENT SEARCHES
+       ---------------------------------------------------
+       Keeps the last 5 unique search queries in
+       localStorage and renders them as clickable chips
+       under the search box.
+    ===================================================== */
+
+    const SEARCH_HISTORY_KEY =
+        "insai_search_history";
+
+    function getSearchHistory() {
+
+        try {
+
+            const stored =
+                JSON.parse(
+                    localStorage.getItem(
+                        SEARCH_HISTORY_KEY
+                    ) || "[]"
+                );
+
+            return Array.isArray(stored)
+                ? stored
+                : [];
+
+        } catch (error) {
+
+            return [];
+        }
+    }
+
+    function pushSearchHistory(term) {
+
+        if (!term) {
+            return;
+        }
+
+        let history =
+            getSearchHistory().filter(item =>
+                item.toLowerCase() !== term.toLowerCase()
+            );
+
+        history.unshift(term);
+
+        history = history.slice(0, 5);
+
+        localStorage.setItem(
+            SEARCH_HISTORY_KEY,
+            JSON.stringify(history)
+        );
+
+        renderSearchHistory();
+    }
+
+    function renderSearchHistory() {
+
+        const container =
+            document.getElementById("searchHistory");
+
+        if (!container) {
+            return;
+        }
+
+        const history =
+            getSearchHistory();
+
+        if (!history.length) {
+
+            container.classList.add("hidden");
+            container.innerHTML = "";
+
+            return;
+        }
+
+        container.classList.remove("hidden");
+
+        container.innerHTML = `
+            <span>Recent:</span>
+            ${history.map(term => `
+                <button
+                    type="button"
+                    data-history-term="${escapeHTML(term)}"
+                >
+                    ${escapeHTML(term)}
+                </button>
+            `).join("")}
+        `;
+
+        container.querySelectorAll(
+            "[data-history-term]"
+        ).forEach(button => {
+
+            button.addEventListener("click", () => {
+
+                window.quickSearch(
+                    button.dataset.historyTerm
+                );
+            });
+        });
+    }
+
+    renderSearchHistory();
+
+
+    /* =====================================================
        MAIN SEARCH
     ===================================================== */
 
@@ -1008,6 +1143,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
+        pushSearchHistory(
+            query || role || (skillsToSend[0] || "")
+        );
+
+
         /* =================================================
            BUILD LOCATION
         ================================================= */
@@ -1039,7 +1179,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (results) {
-            results.innerHTML = "";
+            results.innerHTML = renderSkeletonCards();
         }
 
         if (resultCount) {
@@ -1133,7 +1273,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     : [];
 
 
-            displayResults(candidates);
+            displayResults(candidates, {
+                role: role || query,
+                skills: skillsToSend,
+                location: location,
+                experience: experience
+            });
 
         }
 
@@ -1321,7 +1466,86 @@ document.addEventListener("DOMContentLoaded", () => {
        DISPLAY SEARCH RESULTS
     ===================================================== */
 
-    function displayResults(candidates) {
+    /* =====================================================
+       MATCH INDICATOR
+       ---------------------------------------------------
+       A lightweight, transparent relevance signal: how many
+       of the search criteria you actually entered (role,
+       skills, location, experience) show up somewhere in
+       the candidate's title/description text. This is not
+       an ML score from the backend — it's a plain keyword
+       overlap count, shown as "3/4 criteria matched" so it
+       never overstates its own precision.
+    ===================================================== */
+
+    function computeMatchLabel(candidate, criteria) {
+
+        const haystack =
+            [
+                candidate.title,
+                candidate.name,
+                candidate.content,
+                candidate.description,
+                candidate.current_role,
+                candidate.role,
+                candidate.location
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+
+        const terms = [];
+
+        if (criteria.role) {
+            terms.push(String(criteria.role));
+        }
+
+        if (Array.isArray(criteria.skills)) {
+            terms.push(...criteria.skills);
+        }
+
+        if (criteria.location) {
+            terms.push(String(criteria.location));
+        }
+
+        if (criteria.experience) {
+            terms.push(String(criteria.experience));
+        }
+
+
+        const uniqueTerms =
+            Array.from(
+                new Set(
+                    terms
+                        .map(term => term.trim())
+                        .filter(Boolean)
+                )
+            );
+
+
+        if (!uniqueTerms.length || !haystack) {
+            return null;
+        }
+
+
+        const matchedTerms =
+            uniqueTerms.filter(term =>
+                haystack.includes(term.toLowerCase())
+            );
+
+
+        return {
+            matched: matchedTerms.length,
+            total: uniqueTerms.length
+        };
+    }
+
+
+    function displayResults(candidates, criteria) {
+
+        const searchCriteria =
+            criteria || {};
 
         if (resultCount) {
             resultCount.textContent =
@@ -1448,7 +1672,20 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div>
 
                                 <div class="match">
-                                    Result ${index + 1}
+                                    ${(() => {
+
+                                        const match =
+                                            computeMatchLabel(
+                                                candidate,
+                                                searchCriteria
+                                            );
+
+                                        if (!match) {
+                                            return `Result ${index + 1}`;
+                                        }
+
+                                        return `${match.matched}/${match.total} criteria matched`;
+                                    })()}
                                 </div>
 
                                 <div class="source">
@@ -2868,9 +3105,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
 
-           await apiFetch(
-                "/candidates/${candidateId}",
-    {
+            const response =
+                await apiFetch(
+                    `/candidates/${candidateId}`,
+                    {
                         method: "DELETE"
                     }
                 );
@@ -2939,6 +3177,36 @@ document.addEventListener("DOMContentLoaded", () => {
     /* =====================================================
        HELPERS
     ===================================================== */
+
+    /* =====================================================
+       SKELETON LOADING CARDS
+       ---------------------------------------------------
+       Shown inside #results while a search is in flight,
+       so the wait reads as "candidates are loading" instead
+       of a blank panel behind the spinner.
+    ===================================================== */
+
+    function renderSkeletonCards(count = 4) {
+
+        return Array.from({ length: count })
+            .map(() => `
+                <div class="candidate-card skeleton-card">
+                    <div class="candidate-main">
+                        <div class="avatar skeleton-block"></div>
+                        <div class="candidate-text-content">
+                            <div class="skeleton-line skeleton-line-title"></div>
+                            <div class="skeleton-line skeleton-line-wide"></div>
+                            <div class="skeleton-line skeleton-line-narrow"></div>
+                        </div>
+                    </div>
+                    <div class="candidate-actions">
+                        <div class="skeleton-line skeleton-line-tag"></div>
+                    </div>
+                </div>
+            `)
+            .join("");
+    }
+
 
     function getInitials(text) {
 
@@ -3343,6 +3611,98 @@ document.addEventListener("DOMContentLoaded", () => {
         await loadOutreachCandidates();
 
         loadOutreachHistory();
+
+        processBulkOutreachQueue();
+    }
+
+
+    /* =====================================================
+       BULK OUTREACH QUEUE
+       ---------------------------------------------------
+       "Generate Outreach for Selected" on the Talent Pool
+       page stores the chosen candidate ids under this key
+       and opens this tab. Every queued candidate gets a
+       generated draft saved to Outreach History in one go.
+    ===================================================== */
+
+    const BULK_OUTREACH_QUEUE_KEY =
+        "insai_bulk_outreach_queue";
+
+    function processBulkOutreachQueue() {
+
+        let queuedIds = [];
+
+        try {
+
+            queuedIds =
+                JSON.parse(
+                    localStorage.getItem(
+                        BULK_OUTREACH_QUEUE_KEY
+                    ) || "[]"
+                );
+
+        } catch (error) {
+
+            queuedIds = [];
+        }
+
+
+        if (!Array.isArray(queuedIds) || !queuedIds.length) {
+            return;
+        }
+
+
+        /* Clear immediately so a page refresh never reprocesses it. */
+
+        localStorage.removeItem(
+            BULK_OUTREACH_QUEUE_KEY
+        );
+
+
+        let generatedCount = 0;
+
+        queuedIds.forEach(id => {
+
+            const candidate =
+                outreachCandidates.find(c =>
+                    String(c.id) === String(id)
+                );
+
+            if (!candidate) {
+                return;
+            }
+
+            selectOutreachCandidate(candidate);
+            saveOutreachDraft();
+
+            generatedCount++;
+        });
+
+
+        if (generatedCount) {
+
+            showOutreachStatus(
+                `✓ Generated ${generatedCount} outreach draft` +
+                `${generatedCount === 1 ? "" : "s"} for the candidates ` +
+                `you selected in Talent Pool.`
+            );
+
+            const selectedCount =
+                document.getElementById(
+                    "outreachSelected"
+                );
+
+            if (selectedCount) {
+                selectedCount.textContent =
+                    generatedCount;
+            }
+
+        } else {
+
+            showOutreachStatus(
+                "Selected candidates could not be found in your Talent Pool."
+            );
+        }
     }
 
 
@@ -4204,26 +4564,38 @@ ${RECRUITER_BRAND}`;
         };
 
 
-        const drafts =
+        /*
+         * FIX: drafts used to be saved under a separate
+         * "talentreach_outreach_drafts" key that nothing
+         * ever read back, so saved drafts silently
+         * disappeared. They now go into the same history
+         * list the Outreach History panel reads, tagged
+         * with status "Draft" so sent vs. drafted stays
+         * distinguishable.
+         */
+
+        const history =
             JSON.parse(
                 localStorage.getItem(
-                    "talentreach_outreach_drafts"
+                    "talentreach_outreach_history"
                 ) || "[]"
             );
 
 
-        drafts.unshift(draft);
+        history.unshift(draft);
 
 
         localStorage.setItem(
-            "talentreach_outreach_drafts",
-            JSON.stringify(drafts)
+            "talentreach_outreach_history",
+            JSON.stringify(history)
         );
 
 
         showOutreachStatus(
             "✓ Outreach draft saved successfully."
         );
+
+        loadOutreachHistory();
     }
 
 
@@ -4610,7 +4982,10 @@ ${RECRUITER_BRAND}`;
 
 
                             <span class="outreach-history-status">
-                                Opened in Gmail
+                                ${escapeHTML(
+                                    item.status ||
+                                    "Opened in Gmail"
+                                )}
                             </span>
 
                         </div>
