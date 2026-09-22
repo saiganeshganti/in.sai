@@ -1202,6 +1202,122 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
+       SEARCH INSIGHTS — charts built from live results
+    ===================================================== */
+
+    function renderInsights(candidates) {
+
+        const panel = document.getElementById("insightsPanel");
+        const sourceChart = document.getElementById("sourceChart");
+        const emailChart = document.getElementById("emailChart");
+        const emailLegend = document.getElementById("emailLegend");
+
+        if (!panel) {
+            return;
+        }
+
+        if (!candidates.length) {
+            panel.classList.add("hidden");
+            return;
+        }
+
+        panel.classList.remove("hidden");
+
+        const counts = {
+            "LinkedIn": 0,
+            "Public Web": 0,
+            "Other": 0
+        };
+
+        let withEmail = 0;
+
+        candidates.forEach(candidate => {
+
+            const src = candidate.source || "Other";
+
+            if (counts[src] === undefined) {
+                counts["Other"] += 1;
+            } else {
+                counts[src] += 1;
+            }
+
+            if (candidate.email) {
+                withEmail += 1;
+            }
+        });
+
+        const withoutEmail = candidates.length - withEmail;
+
+        if (sourceChart) {
+
+            const bars = [
+                { label: "LinkedIn", value: counts["LinkedIn"], color: "#c04a5b" },
+                { label: "Public Web", value: counts["Public Web"], color: "#8f1734" },
+                { label: "Other", value: counts["Other"], color: "#c9794d" }
+            ];
+
+            const maxValue = Math.max(
+                bars[0].value,
+                bars[1].value,
+                bars[2].value,
+                1
+            );
+
+            const rowHeight = 30;
+            let svgMarkup = "";
+
+            bars.forEach((bar, i) => {
+
+                const y = 6 + (i * rowHeight);
+                const barWidth = bar.value
+                    ? Math.max((bar.value / maxValue) * 150, 6)
+                    : 0;
+
+                svgMarkup += `
+                    <text x="0" y="${y + 13}" font-family="inherit" font-size="10" fill="#c7b7ba">${bar.label}</text>
+                    <rect x="88" y="${y}" width="${barWidth}" height="16" rx="4" fill="${bar.color}"></rect>
+                    <text x="${96 + barWidth}" y="${y + 13}" font-family="inherit" font-size="10" fill="#eadfe1">${bar.value}</text>
+                `;
+            });
+
+            sourceChart.innerHTML = svgMarkup;
+        }
+
+        if (emailChart) {
+
+            const total = candidates.length;
+            const circumference = 2 * Math.PI * 45;
+            const emailLength =
+                total ? circumference * (withEmail / total) : 0;
+
+            emailChart.innerHTML = `
+                <g transform="translate(60,60)">
+                    <circle r="45" fill="none" stroke="#3a2429" stroke-width="14"></circle>
+                    <circle
+                        r="45"
+                        fill="none"
+                        stroke="#c04a5b"
+                        stroke-width="14"
+                        stroke-dasharray="${emailLength} ${circumference}"
+                        stroke-linecap="round"
+                        transform="rotate(-90)"
+                    ></circle>
+                    <text text-anchor="middle" y="-2" font-family="inherit" font-size="18" font-weight="700" fill="#fff8f8">${withEmail}</text>
+                    <text text-anchor="middle" y="14" font-family="inherit" font-size="9" fill="#9c898e">with email</text>
+                </g>
+            `;
+        }
+
+        if (emailLegend) {
+            emailLegend.innerHTML = `
+                <span><i style="background:#c04a5b;"></i>${withEmail} with email</span>
+                <span><i style="background:#3a2429;"></i>${withoutEmail} without</span>
+            `;
+        }
+    }
+
+
+    /* =====================================================
        DISPLAY SEARCH RESULTS
     ===================================================== */
 
@@ -1219,6 +1335,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     ? `${candidates.length} candidates found`
                     : "No candidates found";
         }
+
+        renderInsights(candidates);
 
 
         if (!results) {
