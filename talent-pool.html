@@ -60,6 +60,10 @@
             cursor: not-allowed;
         }
 
+        .bulk-actions .send-emails-button {
+            border-color: rgba(120, 200, 140, 0.4);
+        }
+
 
         /* =====================================================
            CANDIDATE SELECT CHECKBOX
@@ -75,6 +79,100 @@
         .candidate-select-checkbox {
             width: 16px;
             height: 16px;
+            cursor: pointer;
+        }
+
+
+        /* =====================================================
+           BULK EMAIL PROGRESS / RESULTS
+        ====================================================== */
+
+        .bulk-email-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .bulk-email-modal-backdrop.hidden {
+            display: none;
+        }
+
+        .bulk-email-modal {
+            width: 100%;
+            max-width: 520px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: #1a1218;
+            padding: 24px;
+        }
+
+        .bulk-email-modal h3 {
+            margin: 0 0 10px;
+        }
+
+        .bulk-email-modal p {
+            margin: 0 0 18px;
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        .bulk-email-summary {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+
+        .bulk-email-summary span {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .bulk-email-results-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .bulk-email-result-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 12px;
+        }
+
+        .bulk-email-result-row .status-sent {
+            color: #7fd99a;
+        }
+
+        .bulk-email-result-row .status-skipped {
+            color: #d9c37f;
+        }
+
+        .bulk-email-result-row .status-failed {
+            color: #e0838a;
+        }
+
+        .bulk-email-modal-actions {
+            margin-top: 18px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .bulk-email-modal-actions button {
+            padding: 9px 18px;
+            border-radius: 8px;
             cursor: pointer;
         }
 
@@ -645,6 +743,10 @@
                         Generate Outreach for Selected
                     </button>
 
+                    <button type="button" class="view-button send-emails-button" id="sendBulkEmailsButton" disabled>
+                        ✉ Send Bulk Emails
+                    </button>
+
                 </div>
 
             </div>
@@ -666,6 +768,37 @@
 
 
     </main>
+
+
+
+    <!-- =====================================================
+         BULK EMAIL MODAL
+    ====================================================== -->
+
+    <div class="bulk-email-modal-backdrop hidden" id="bulkEmailModalBackdrop">
+
+        <div class="bulk-email-modal">
+
+            <h3 id="bulkEmailModalTitle">Send Bulk Emails</h3>
+
+            <p id="bulkEmailModalSubtitle">
+                Each selected candidate receives a personalized email
+                generated from their profile. This may take a moment.
+            </p>
+
+            <div class="bulk-email-summary" id="bulkEmailSummary"></div>
+
+            <div class="bulk-email-results-list" id="bulkEmailResultsList"></div>
+
+            <div class="bulk-email-modal-actions">
+                <button type="button" class="view-button" id="closeBulkEmailModal">
+                    Close
+                </button>
+            </div>
+
+        </div>
+
+    </div>
 
 
 
