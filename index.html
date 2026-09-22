@@ -70,7 +70,15 @@
 
         .navbar .logo {
             min-width: 180px;
-            cursor: default;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: opacity 0.15s ease;
+        }
+
+        .navbar .logo:hover {
+            opacity: 0.85;
         }
 
         .in-sai-logo {
@@ -176,6 +184,163 @@
             background: transparent;
             font-size: 12px;
             padding: 4px 7px;
+        }
+
+
+        /* =====================================================
+           RECENT SEARCHES
+        ====================================================== */
+
+        .search-history {
+            margin-top: 8px;
+        }
+
+        .search-history button {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 11px;
+            padding: 5px 11px;
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .search-history button:hover {
+            border-color: rgba(255, 255, 255, 0.28);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .search-history span {
+            opacity: 0.55;
+        }
+
+
+        /* =====================================================
+           SKELETON LOADING CARDS
+        ====================================================== */
+
+        .skeleton-card {
+            pointer-events: none;
+        }
+
+        .skeleton-block,
+        .skeleton-line {
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.05) 25%,
+                rgba(255, 255, 255, 0.10) 37%,
+                rgba(255, 255, 255, 0.05) 63%
+            );
+            background-size: 400% 100%;
+            animation: skeleton-shimmer 1.4s ease infinite;
+            border-radius: 6px;
+        }
+
+        .skeleton-block {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .skeleton-line {
+            height: 11px;
+            margin: 8px 0;
+        }
+
+        .skeleton-line-title {
+            width: 55%;
+            height: 14px;
+        }
+
+        .skeleton-line-wide {
+            width: 90%;
+        }
+
+        .skeleton-line-narrow {
+            width: 40%;
+        }
+
+        .skeleton-line-tag {
+            width: 120px;
+            height: 26px;
+            border-radius: 8px;
+        }
+
+        @keyframes skeleton-shimmer {
+            0% {
+                background-position: 100% 0;
+            }
+            100% {
+                background-position: -100% 0;
+            }
+        }
+
+
+        /* =====================================================
+           TALENT POOL — BULK TOOLBAR
+        ====================================================== */
+
+        .talent-pool-toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .talent-pool-toolbar label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            opacity: 0.75;
+            cursor: pointer;
+        }
+
+        .talent-pool-toolbar-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+
+        .talent-pool-toolbar-actions button {
+            padding: 8px 13px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.035);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .talent-pool-toolbar-actions button:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.20);
+        }
+
+        .talent-pool-toolbar-actions button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .talent-select-checkbox {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .talent-pool-card {
+            position: relative;
         }
 
 
@@ -779,7 +944,12 @@
 
     <header class="navbar">
 
-        <div class="logo">
+        <a
+            class="logo"
+            href="/"
+            id="logoHome"
+            aria-label="In SAI — reset and go to search"
+        >
 
             <img
                 class="in-sai-logo"
@@ -787,7 +957,7 @@
                 alt="In SAI"
             >
 
-        </div>
+        </a>
 
 
         <nav>
@@ -948,6 +1118,16 @@
                     </button>
 
                 </div>
+
+
+                <!-- =================================================
+                     RECENT SEARCHES
+                ================================================== -->
+
+                <div
+                    id="searchHistory"
+                    class="search-hint search-history hidden"
+                ></div>
 
 
                 <!-- =================================================
@@ -1139,14 +1319,13 @@
 
                     <!-- SKILL -->
 
-                    <div class="filter filter-skills">
+                    <div class="filter">
 
                         <label for="skillFilter">
-                            Skills
-                            <span class="skill-summary" id="skillSummary">No skills selected</span>
+                            Skill
                         </label>
 
-                        <select id="skillFilter" style="display:none;">
+                        <select id="skillFilter">
 
                             <option value="">
                                 Any skill
@@ -1169,47 +1348,6 @@
                             <option>Digital Marketing</option>
 
                         </select>
-
-                        <div class="skill-picker">
-
-                            <div class="skill-group">
-
-                                <div class="skill-group-label">
-                                    Technical
-                                </div>
-
-                                <div class="skill-chip-row">
-                                    <button type="button" class="skill-chip" data-skill="Excel">Excel</button>
-                                    <button type="button" class="skill-chip" data-skill="Tally">Tally</button>
-                                    <button type="button" class="skill-chip" data-skill="Power BI">Power BI</button>
-                                    <button type="button" class="skill-chip" data-skill="SQL">SQL</button>
-                                    <button type="button" class="skill-chip" data-skill="Python">Python</button>
-                                    <button type="button" class="skill-chip" data-skill="SAP">SAP</button>
-                                    <button type="button" class="skill-chip" data-skill="Financial Modeling">Financial Modeling</button>
-                                    <button type="button" class="skill-chip" data-skill="Digital Marketing">Digital Marketing</button>
-                                    <button type="button" class="skill-chip" data-skill="Data Analysis">Data Analysis</button>
-                                </div>
-
-                            </div>
-
-                            <div class="skill-group">
-
-                                <div class="skill-group-label">
-                                    Soft skills
-                                </div>
-
-                                <div class="skill-chip-row">
-                                    <button type="button" class="skill-chip" data-skill="Communication">Communication</button>
-                                    <button type="button" class="skill-chip" data-skill="Negotiation">Negotiation</button>
-                                    <button type="button" class="skill-chip" data-skill="Team Leadership">Team Leadership</button>
-                                    <button type="button" class="skill-chip" data-skill="Stakeholder Management">Stakeholder Management</button>
-                                    <button type="button" class="skill-chip" data-skill="Client Handling">Client Handling</button>
-                                    <button type="button" class="skill-chip" data-skill="Problem Solving">Problem Solving</button>
-                                </div>
-
-                            </div>
-
-                        </div>
 
                     </div>
 
@@ -1255,46 +1393,6 @@
 
                             <option value="Singapore">
                                 Singapore
-                            </option>
-
-                            <option value="Germany">
-                                Germany
-                            </option>
-
-                            <option value="France">
-                                France
-                            </option>
-
-                            <option value="Netherlands">
-                                Netherlands
-                            </option>
-
-                            <option value="Ireland">
-                                Ireland
-                            </option>
-
-                            <option value="New Zealand">
-                                New Zealand
-                            </option>
-
-                            <option value="Saudi Arabia">
-                                Saudi Arabia
-                            </option>
-
-                            <option value="Qatar">
-                                Qatar
-                            </option>
-
-                            <option value="Malaysia">
-                                Malaysia
-                            </option>
-
-                            <option value="South Africa">
-                                South Africa
-                            </option>
-
-                            <option value="Philippines">
-                                Philippines
                             </option>
 
                         </select>
@@ -1582,41 +1680,6 @@
 
 
                 <!-- =================================================
-                     SEARCH INSIGHTS (charts built from live results)
-                ================================================== -->
-
-                <div
-                    id="insightsPanel"
-                    class="insights-panel hidden"
-                >
-
-                    <div class="insight-card">
-
-                        <div class="insight-title">
-                            Results by source
-                        </div>
-
-                        <svg id="sourceChart" viewBox="0 0 280 100" width="100%" height="100"></svg>
-
-                    </div>
-
-                    <div class="insight-card">
-
-                        <div class="insight-title">
-                            Email availability
-                        </div>
-
-                        <svg id="emailChart" viewBox="0 0 120 120" width="120" height="120"></svg>
-
-                        <div class="insight-legend" id="emailLegend"></div>
-
-                    </div>
-
-                </div>
-
-
-
-                <!-- =================================================
                      RESULTS
                 ================================================== -->
 
@@ -1690,6 +1753,57 @@
                         class="talent-pool-count"
                     >
                         0 Candidates
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     BULK TOOLBAR
+                ================================================== -->
+
+                <div class="talent-pool-toolbar">
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            id="talentSelectAll"
+                        >
+                        Select all
+                    </label>
+
+                    <span
+                        id="talentSelectedCount"
+                        style="font-size:12px; opacity:0.6;"
+                    >
+                        0 selected
+                    </span>
+
+                    <div class="talent-pool-toolbar-actions">
+
+                        <button
+                            type="button"
+                            id="exportTalentPoolCsv"
+                        >
+                            ⤓ Export CSV
+                        </button>
+
+                        <button
+                            type="button"
+                            id="bulkOutreachSelected"
+                            disabled
+                        >
+                            ✦ Generate Outreach for Selected
+                        </button>
+
+                        <button
+                            type="button"
+                            id="removeSelectedTalentPool"
+                            disabled
+                        >
+                            Remove Selected
+                        </button>
+
                     </div>
 
                 </div>
@@ -2150,6 +2264,9 @@
                TALENT POOL
             ================================================== */
 
+            let currentTalentPoolCandidates = [];
+
+
             async function loadTalentPool() {
 
                 const container =
@@ -2182,6 +2299,12 @@
                         await response.json();
 
 
+                    currentTalentPoolCandidates =
+                        Array.isArray(candidates)
+                            ? candidates
+                            : [];
+
+
                     count.textContent =
                         `${candidates.length} Candidate${candidates.length === 1 ? "" : "s"}`;
 
@@ -2209,6 +2332,8 @@
 
                         `;
 
+                        updateTalentToolbarState();
+
                         return;
 
                     }
@@ -2220,6 +2345,12 @@
                             return `
 
                                 <div class="talent-pool-card">
+
+                                    <input
+                                        type="checkbox"
+                                        class="talent-select-checkbox"
+                                        data-id="${escapeAttribute(candidate.id)}"
+                                    >
 
                                     <h3>
                                         ${escapeTalentPoolText(
@@ -2324,6 +2455,9 @@
                         }).join("");
 
 
+                    updateTalentToolbarState();
+
+
                 } catch (error) {
 
                     console.error(
@@ -2353,8 +2487,324 @@
 
                     `;
 
+                    currentTalentPoolCandidates = [];
+
+                    updateTalentToolbarState();
+
                 }
 
+            }
+
+
+
+            /* =================================================
+               BULK TOOLBAR
+            ================================================== */
+
+            function getSelectedTalentCheckboxes() {
+
+                return Array.from(
+                    document.querySelectorAll(
+                        ".talent-select-checkbox"
+                    )
+                );
+            }
+
+            function getSelectedTalentIds() {
+
+                return getSelectedTalentCheckboxes()
+                    .filter(checkbox => checkbox.checked)
+                    .map(checkbox => checkbox.dataset.id);
+            }
+
+            function updateTalentToolbarState() {
+
+                const selectedCount =
+                    document.getElementById(
+                        "talentSelectedCount"
+                    );
+
+                const removeButton =
+                    document.getElementById(
+                        "removeSelectedTalentPool"
+                    );
+
+                const outreachButton =
+                    document.getElementById(
+                        "bulkOutreachSelected"
+                    );
+
+                const selectAll =
+                    document.getElementById(
+                        "talentSelectAll"
+                    );
+
+                const selected =
+                    getSelectedTalentIds();
+
+                const checkboxes =
+                    getSelectedTalentCheckboxes();
+
+
+                if (selectedCount) {
+
+                    selectedCount.textContent =
+                        `${selected.length} selected`;
+                }
+
+
+                if (removeButton) {
+                    removeButton.disabled = selected.length === 0;
+                }
+
+                if (outreachButton) {
+                    outreachButton.disabled = selected.length === 0;
+                }
+
+
+                if (selectAll) {
+
+                    selectAll.checked =
+                        checkboxes.length > 0 &&
+                        selected.length === checkboxes.length;
+
+                    selectAll.indeterminate =
+                        selected.length > 0 &&
+                        selected.length < checkboxes.length;
+                }
+
+
+                checkboxes.forEach(checkbox => {
+
+                    if (checkbox.dataset.wired) {
+                        return;
+                    }
+
+                    checkbox.dataset.wired = "true";
+
+                    checkbox.addEventListener(
+                        "change",
+                        updateTalentToolbarState
+                    );
+                });
+            }
+
+
+            const talentSelectAll =
+                document.getElementById(
+                    "talentSelectAll"
+                );
+
+            if (talentSelectAll) {
+
+                talentSelectAll.addEventListener(
+                    "change",
+                    () => {
+
+                        getSelectedTalentCheckboxes().forEach(
+                            checkbox => {
+
+                                checkbox.checked =
+                                    talentSelectAll.checked;
+                            }
+                        );
+
+                        updateTalentToolbarState();
+                    }
+                );
+            }
+
+
+            const exportCsvButton =
+                document.getElementById(
+                    "exportTalentPoolCsv"
+                );
+
+            if (exportCsvButton) {
+
+                exportCsvButton.addEventListener(
+                    "click",
+                    exportTalentPoolToCsv
+                );
+            }
+
+
+            function exportTalentPoolToCsv() {
+
+                if (!currentTalentPoolCandidates.length) {
+
+                    alert(
+                        "Your Talent Pool is empty — nothing to export."
+                    );
+
+                    return;
+                }
+
+
+                const columns = [
+                    "name",
+                    "current_role",
+                    "company",
+                    "location",
+                    "skills",
+                    "experience",
+                    "email",
+                    "linkedin_url",
+                    "status"
+                ];
+
+
+                const csvEscape = value => {
+
+                    const text =
+                        value === null || value === undefined
+                            ? ""
+                            : String(value);
+
+                    if (/[",\n]/.test(text)) {
+
+                        return `"${text.replace(/"/g, '""')}"`;
+                    }
+
+                    return text;
+                };
+
+
+                const rows = [
+                    columns.join(","),
+                    ...currentTalentPoolCandidates.map(candidate =>
+                        columns
+                            .map(column => csvEscape(candidate[column]))
+                            .join(",")
+                    )
+                ];
+
+
+                const csvContent =
+                    rows.join("\n");
+
+
+                const blob =
+                    new Blob(
+                        [csvContent],
+                        { type: "text/csv;charset=utf-8;" }
+                    );
+
+
+                const url =
+                    URL.createObjectURL(blob);
+
+
+                const link =
+                    document.createElement("a");
+
+                link.href = url;
+
+                link.download =
+                    `in-sai-talent-pool-${new Date().toISOString().slice(0, 10)}.csv`;
+
+                document.body.appendChild(link);
+
+                link.click();
+
+                document.body.removeChild(link);
+
+                URL.revokeObjectURL(url);
+            }
+
+
+            const removeSelectedButton =
+                document.getElementById(
+                    "removeSelectedTalentPool"
+                );
+
+            if (removeSelectedButton) {
+
+                removeSelectedButton.addEventListener(
+                    "click",
+                    async () => {
+
+                        const ids =
+                            getSelectedTalentIds();
+
+                        if (!ids.length) {
+                            return;
+                        }
+
+                        const confirmed =
+                            confirm(
+                                `Remove ${ids.length} candidate${ids.length === 1 ? "" : "s"} from your Talent Pool?`
+                            );
+
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        removeSelectedButton.disabled = true;
+
+                        removeSelectedButton.textContent =
+                            "Removing...";
+
+                        for (const id of ids) {
+
+                            try {
+
+                                await fetch(
+                                    `${API_BASE_URL}/candidates/${id}`,
+                                    { method: "DELETE" }
+                                );
+
+                            } catch (error) {
+
+                                console.error(
+                                    "Bulk remove error:",
+                                    error
+                                );
+                            }
+                        }
+
+                        removeSelectedButton.textContent =
+                            "Remove Selected";
+
+                        await loadTalentPool();
+                    }
+                );
+            }
+
+
+            const bulkOutreachButton =
+                document.getElementById(
+                    "bulkOutreachSelected"
+                );
+
+            if (bulkOutreachButton) {
+
+                bulkOutreachButton.addEventListener(
+                    "click",
+                    () => {
+
+                        const ids =
+                            getSelectedTalentIds();
+
+                        if (!ids.length) {
+                            return;
+                        }
+
+                        localStorage.setItem(
+                            "insai_bulk_outreach_queue",
+                            JSON.stringify(ids)
+                        );
+
+                        const outreachNavLink =
+                            document.getElementById(
+                                "outreachNav"
+                            );
+
+                        if (outreachNavLink) {
+                            outreachNavLink.click();
+                        }
+                    }
+                );
             }
 
 
