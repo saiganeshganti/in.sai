@@ -2897,9 +2897,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
 
-           await apiFetch(
-                "/candidates/${candidateId}",
-    {
+            const response =
+                await apiFetch(
+                    `/candidates/${candidateId}`,
+                    {
                         method: "DELETE"
                     }
                 );
