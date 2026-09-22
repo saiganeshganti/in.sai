@@ -13,13 +13,20 @@ from pathlib import Path
 import os
 import re
 import json
+import time
 import threading
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib.request
 import urllib.error
 import urllib.parse
 from urllib.parse import urljoin, urlparse
 from html.parser import HTMLParser
+from sqlalchemy import text as sql_text
 
 from database import engine, SessionLocal, Base
 from models import Candidate
@@ -79,6 +86,98 @@ tavily_client = TavilyClient(
 Base.metadata.create_all(
     bind=engine
 )
+
+
+# =========================================================
+# LIGHTWEIGHT SCHEMA MIGRATION (SQLITE)
+# =========================================================
+# Base.metadata.create_all() only creates tables that don't exist yet.
+# It does NOT add new columns to a table that's already there. Since
+# the "candidates" table already exists in the deployed .db file, new
+# columns (notes, do_not_contact, last_contacted, emails_sent) need to
+# be added explicitly the first time this starts up with the new code.
+# This is safe to run every startup: it only adds a column if missing.
+
+def _run_sqlite_migrations():
+    try:
+        with engine.connect() as connection:
+            existing_columns = {
+                row[1]
+                for row in connection.execute(
+                    sql_text("PRAGMA table_info(candidates)")
+                )
+            }
+
+            migrations = [
+                ("notes", "ALTER TABLE candidates ADD COLUMN notes TEXT"),
+                ("do_not_contact", "ALTER TABLE candidates ADD COLUMN do_not_contact BOOLEAN NOT NULL DEFAULT 0"),
+                ("last_contacted", "ALTER TABLE candidates ADD COLUMN last_contacted DATETIME"),
+                ("emails_sent", "ALTER TABLE candidates ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0"),
+            ]
+
+            for column_name, statement in migrations:
+                if column_name not in existing_columns:
+                    print(f"MIGRATION: adding missing column '{column_name}' to candidates")
+                    connection.execute(sql_text(statement))
+                    connection.commit()
+
+    except Exception as error:
+        # Never crash the app over a migration issue -- log it and
+        # continue, since create_all() already guarantees the table
+        # exists with at least the original columns.
+        print("MIGRATION ERROR:", repr(error))
+
+
+_run_sqlite_migrations()
+
+
+# =========================================================
+# SMTP / EMAIL SENDING CONFIGURATION
+# =========================================================
+# Credentials are read from environment variables only -- never
+# hardcoded. Set these in Render: Dashboard -> your service ->
+# Environment -> Add Environment Variable.
+#
+#   SMTP_EMAIL          the Gmail address emails are sent from
+#   SMTP_APP_PASSWORD   a 16-character Gmail "App Password"
+#                        (Google Account -> Security -> 2-Step
+#                        Verification -> App Passwords)
+#
+# If these are not set, /send-bulk-emails will return a clear
+# "unavailable" response instead of crashing.
+
+SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_APP_PASSWORD = os.getenv("SMTP_APP_PASSWORD")
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+SMTP_SENDER_NAME = os.getenv("SMTP_SENDER_NAME", "In SAI AI Recruiter")
+
+print("SMTP EMAIL CONFIGURED:", bool(SMTP_EMAIL and SMTP_APP_PASSWORD))
+
+
+def send_email_via_smtp(to_email: str, subject: str, body: str):
+    """
+    Sends one plain-text email via Gmail SMTP (SSL, port 465).
+    Raises an exception on failure -- callers are expected to catch it
+    per-candidate so one bad send doesn't stop the whole batch.
+    """
+    if not SMTP_EMAIL or not SMTP_APP_PASSWORD:
+        raise RuntimeError(
+            "Email sending is not configured. "
+            "Set SMTP_EMAIL and SMTP_APP_PASSWORD as environment variables."
+        )
+
+    message = MIMEMultipart()
+    message["From"] = f"{SMTP_SENDER_NAME} <{SMTP_EMAIL}>"
+    message["To"] = to_email
+    message["Subject"] = subject
+    message.attach(MIMEText(body, "plain"))
+
+    context = ssl.create_default_context()
+
+    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context, timeout=20) as server:
+        server.login(SMTP_EMAIL, SMTP_APP_PASSWORD)
+        server.sendmail(SMTP_EMAIL, to_email, message.as_string())
 
 
 # =========================================================
@@ -471,6 +570,30 @@ class CandidateCreate(BaseModel):
 
 class CandidateStatusUpdate(BaseModel):
     status: str
+
+
+# =========================================================
+# CANDIDATE NOTES / DO-NOT-CONTACT UPDATE MODEL
+# =========================================================
+
+class CandidateNotesUpdate(BaseModel):
+    notes: str | None = None
+    do_not_contact: bool | None = None
+
+
+# =========================================================
+# BULK EMAIL REQUEST MODEL
+# =========================================================
+
+class BulkEmailRequest(BaseModel):
+    candidate_ids: list[int] = Field(default_factory=list)
+    email_type: str = "initial_outreach"
+    tone: str = "professional"
+    requested_role: str = ""
+    search_query: str = ""
+    search_role: str = ""
+    search_skill: str = ""
+    search_context: dict = Field(default_factory=dict)
 
 
 # =========================================================
@@ -2454,3 +2577,244 @@ Return exactly:
                 "Check the terminal for the exact Gemini error."
             )
         )
+
+
+# =========================================================
+# BULK EMAIL SENDING
+# =========================================================
+# Sends real emails via Gmail SMTP to a list of Talent Pool candidates.
+# For each candidate:
+#   1. Skips it if do_not_contact is set, or it has no email on file.
+#   2. Generates a personalized subject/body using the exact same
+#      Gemini logic as /generate-email (called directly -- no
+#      duplicated prompt).
+#   3. Sends it via SMTP.
+#   4. Updates last_contacted / emails_sent on success.
+# Returns a per-candidate result list so the UI can show exactly what
+# happened for each person, even when some succeed and some fail.
+
+@app.post("/send-bulk-emails")
+def send_bulk_emails(
+    request: BulkEmailRequest,
+    db: Session = Depends(get_db)
+):
+
+    if not SMTP_EMAIL or not SMTP_APP_PASSWORD:
+        return {
+            "status": "unavailable",
+            "message": (
+                "Email sending is not configured on the server. "
+                "Set SMTP_EMAIL and SMTP_APP_PASSWORD as environment "
+                "variables on Render, then redeploy."
+            ),
+            "results": []
+        }
+
+    candidate_ids = [
+        cid for cid in dict.fromkeys(request.candidate_ids)
+        if isinstance(cid, int)
+    ]
+
+    if not candidate_ids:
+        return {
+            "status": "error",
+            "message": "No candidate IDs were provided.",
+            "results": []
+        }
+
+    results = []
+    sent_count = 0
+    skipped_count = 0
+    failed_count = 0
+
+    print("")
+    print("========================================")
+    print("BULK EMAIL SEND STARTED")
+    print("Candidate count:", len(candidate_ids))
+    print("========================================")
+
+    for candidate_id in candidate_ids:
+
+        candidate = (
+            db.query(Candidate)
+            .filter(Candidate.id == candidate_id)
+            .first()
+        )
+
+        if not candidate:
+            results.append({
+                "candidate_id": candidate_id,
+                "status": "failed",
+                "message": "Candidate not found."
+            })
+            failed_count += 1
+            continue
+
+        candidate_name = candidate.name or "Candidate"
+
+        # -----------------------------------------------
+        # SKIP: do not contact
+        # -----------------------------------------------
+
+        if getattr(candidate, "do_not_contact", False):
+            results.append({
+                "candidate_id": candidate_id,
+                "candidate_name": candidate_name,
+                "status": "skipped",
+                "message": "Candidate is marked Do Not Contact."
+            })
+            skipped_count += 1
+            continue
+
+        # -----------------------------------------------
+        # SKIP: no email on file
+        # -----------------------------------------------
+
+        if not candidate.email:
+            results.append({
+                "candidate_id": candidate_id,
+                "candidate_name": candidate_name,
+                "status": "skipped",
+                "message": "No email address on file for this candidate."
+            })
+            skipped_count += 1
+            continue
+
+        # -----------------------------------------------
+        # GENERATE the email (reuses /generate-email logic directly)
+        # -----------------------------------------------
+
+        try:
+            generation = generate_email(
+                EmailGenerationRequest(
+                    candidate_id=candidate_id,
+                    email_type=request.email_type,
+                    tone=request.tone,
+                    requested_role=request.requested_role,
+                    search_query=request.search_query,
+                    search_role=request.search_role,
+                    search_skill=request.search_skill,
+                    search_context=request.search_context,
+                ),
+                db
+            )
+
+        except HTTPException as error:
+            results.append({
+                "candidate_id": candidate_id,
+                "candidate_name": candidate_name,
+                "status": "failed",
+                "message": f"Email generation failed: {error.detail}"
+            })
+            failed_count += 1
+            continue
+
+        except Exception as error:
+            results.append({
+                "candidate_id": candidate_id,
+                "candidate_name": candidate_name,
+                "status": "failed",
+                "message": f"Email generation failed: {error}"
+            })
+            failed_count += 1
+            continue
+
+        subject = generation.get("subject", "")
+        body = generation.get("body", "")
+
+        # -----------------------------------------------
+        # SEND via SMTP
+        # -----------------------------------------------
+
+        try:
+            send_email_via_smtp(candidate.email, subject, body)
+
+        except Exception as error:
+            print("SMTP SEND ERROR for candidate", candidate_id, ":", repr(error))
+
+            results.append({
+                "candidate_id": candidate_id,
+                "candidate_name": candidate_name,
+                "status": "failed",
+                "message": f"Sending failed: {error}"
+            })
+            failed_count += 1
+            continue
+
+        # -----------------------------------------------
+        # SUCCESS -- update tracking fields
+        # -----------------------------------------------
+
+        try:
+            candidate.last_contacted = datetime.now(timezone.utc)
+            candidate.emails_sent = (candidate.emails_sent or 0) + 1
+            db.commit()
+        except Exception as error:
+            print("TRACKING UPDATE ERROR for candidate", candidate_id, ":", repr(error))
+            db.rollback()
+
+        results.append({
+            "candidate_id": candidate_id,
+            "candidate_name": candidate_name,
+            "email": candidate.email,
+            "status": "sent",
+            "subject": subject
+        })
+        sent_count += 1
+
+        # Small delay between sends to stay well under Gmail's
+        # per-second/per-minute sending limits during a batch.
+        time.sleep(1.2)
+
+    print("")
+    print("========================================")
+    print("BULK EMAIL SEND COMPLETE")
+    print("Sent:", sent_count, "| Skipped:", skipped_count, "| Failed:", failed_count)
+    print("========================================")
+
+    return {
+        "status": "success",
+        "sent_count": sent_count,
+        "skipped_count": skipped_count,
+        "failed_count": failed_count,
+        "results": results
+    }
+
+
+# =========================================================
+# UPDATE CANDIDATE NOTES / DO-NOT-CONTACT
+# =========================================================
+
+@app.patch("/candidates/{candidate_id}/notes")
+def update_candidate_notes(
+    candidate_id: int,
+    data: CandidateNotesUpdate,
+    db: Session = Depends(get_db)
+):
+
+    candidate = (
+        db.query(Candidate)
+        .filter(Candidate.id == candidate_id)
+        .first()
+    )
+
+    if not candidate:
+        return {
+            "status": "error",
+            "message": "Candidate not found"
+        }
+
+    if data.notes is not None:
+        candidate.notes = data.notes
+
+    if data.do_not_contact is not None:
+        candidate.do_not_contact = data.do_not_contact
+
+    db.commit()
+    db.refresh(candidate)
+
+    return {
+        "status": "success",
+        "message": "Candidate updated",
+        "candidate": candidate
+    }
