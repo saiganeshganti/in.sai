@@ -148,7 +148,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const searchButton = document.getElementById("searchButton");
 
     const roleFilter = document.getElementById("roleFilter");
-    const skillFilter = document.getElementById("skillFilter");
     const regionFilter = document.getElementById("regionFilter");
     const stateFilter = document.getElementById("stateFilter");
     const cityFilter = document.getElementById("cityFilter");
@@ -169,7 +168,14 @@ document.addEventListener("DOMContentLoaded", () => {
        SKILL MULTISELECT (Technical + Soft, chip-based)
     ===================================================== */
 
-    const selectedSkills = new Set();
+    const selectedTechnicalSkills = new Set();
+    const selectedSoftSkills = new Set();
+
+    function getSkillSet(category) {
+        return category === "soft"
+            ? selectedSoftSkills
+            : selectedTechnicalSkills;
+    }
 
     function getActiveSources() {
 
@@ -207,21 +213,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const value = chip.dataset.skill;
 
+            const category =
+                chip.dataset.skillCategory === "soft"
+                    ? "soft"
+                    : "technical";
+
             if (!value) {
                 return;
             }
 
-            if (selectedSkills.has(value)) {
-                selectedSkills.delete(value);
+            const targetSet = getSkillSet(category);
+
+            if (targetSet.has(value)) {
+                targetSet.delete(value);
                 chip.classList.remove("selected");
             } else {
-                selectedSkills.add(value);
+                targetSet.add(value);
                 chip.classList.add("selected");
-            }
-
-            if (skillFilter) {
-                const first = selectedSkills.values().next().value;
-                skillFilter.value = first || "";
             }
 
             updateSkillSummary();
@@ -236,27 +244,43 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (!selectedSkills.size) {
-            skillSummary.textContent = "No skills selected";
-            return;
+        const parts = [];
+
+        if (selectedTechnicalSkills.size) {
+            parts.push(
+                `Technical: ${Array.from(selectedTechnicalSkills).join(", ")}`
+            );
+        }
+
+        if (selectedSoftSkills.size) {
+            parts.push(
+                `Soft: ${Array.from(selectedSoftSkills).join(", ")}`
+            );
         }
 
         skillSummary.textContent =
-            Array.from(selectedSkills).join(", ");
+            parts.length
+                ? parts.join(" · ")
+                : "No skills selected";
     }
 
-    function selectSkillChip(value) {
+    function selectSkillChip(value, category) {
 
         if (!value) {
             return;
         }
 
+        const resolvedCategory =
+            category === "soft" ? "soft" : "technical";
+
         const chip = document.querySelector(
-            `.skill-chip[data-skill="${CSS.escape(value)}"]`
+            `.skill-chip[data-skill="${CSS.escape(value)}"][data-skill-category="${CSS.escape(resolvedCategory)}"]`
         );
 
-        if (chip && !selectedSkills.has(value)) {
-            selectedSkills.add(value);
+        const targetSet = getSkillSet(resolvedCategory);
+
+        if (chip && !targetSet.has(value)) {
+            targetSet.add(value);
             chip.classList.add("selected");
             updateSkillSummary();
         }
@@ -895,11 +919,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     searchInput.value = skill;
                 }
 
-                if (skillFilter) {
-                    skillFilter.value = skill;
-                }
-
-                selectSkillChip(skill);
+                selectSkillChip(skill, button.dataset.skillCategory);
             }
 
             performSearch();
@@ -955,141 +975,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
-       KEYBOARD SHORTCUT — "/" focuses the search box
-    ===================================================== */
-
-    document.addEventListener("keydown", event => {
-
-        if (event.key !== "/") {
-            return;
-        }
-
-        const active = document.activeElement;
-
-        const isTyping =
-            active &&
-            (
-                active.tagName === "INPUT" ||
-                active.tagName === "TEXTAREA" ||
-                active.isContentEditable
-            );
-
-        if (isTyping || !searchInput) {
-            return;
-        }
-
-        event.preventDefault();
-
-        searchInput.focus();
-    });
-
-
-    /* =====================================================
-       RECENT SEARCHES
-       ---------------------------------------------------
-       Keeps the last 5 unique search queries in
-       localStorage and renders them as clickable chips
-       under the search box.
-    ===================================================== */
-
-    const SEARCH_HISTORY_KEY =
-        "insai_search_history";
-
-    function getSearchHistory() {
-
-        try {
-
-            const stored =
-                JSON.parse(
-                    localStorage.getItem(
-                        SEARCH_HISTORY_KEY
-                    ) || "[]"
-                );
-
-            return Array.isArray(stored)
-                ? stored
-                : [];
-
-        } catch (error) {
-
-            return [];
-        }
-    }
-
-    function pushSearchHistory(term) {
-
-        if (!term) {
-            return;
-        }
-
-        let history =
-            getSearchHistory().filter(item =>
-                item.toLowerCase() !== term.toLowerCase()
-            );
-
-        history.unshift(term);
-
-        history = history.slice(0, 5);
-
-        localStorage.setItem(
-            SEARCH_HISTORY_KEY,
-            JSON.stringify(history)
-        );
-
-        renderSearchHistory();
-    }
-
-    function renderSearchHistory() {
-
-        const container =
-            document.getElementById("searchHistory");
-
-        if (!container) {
-            return;
-        }
-
-        const history =
-            getSearchHistory();
-
-        if (!history.length) {
-
-            container.classList.add("hidden");
-            container.innerHTML = "";
-
-            return;
-        }
-
-        container.classList.remove("hidden");
-
-        container.innerHTML = `
-            <span>Recent:</span>
-            ${history.map(term => `
-                <button
-                    type="button"
-                    data-history-term="${escapeHTML(term)}"
-                >
-                    ${escapeHTML(term)}
-                </button>
-            `).join("")}
-        `;
-
-        container.querySelectorAll(
-            "[data-history-term]"
-        ).forEach(button => {
-
-            button.addEventListener("click", () => {
-
-                window.quickSearch(
-                    button.dataset.historyTerm
-                );
-            });
-        });
-    }
-
-    renderSearchHistory();
-
-
-    /* =====================================================
        MAIN SEARCH
     ===================================================== */
 
@@ -1105,13 +990,16 @@ document.addEventListener("DOMContentLoaded", () => {
             ? roleFilter.value
             : "";
 
-        const skill = skillFilter
-            ? skillFilter.value
-            : "";
+        const technicalSkillsToSend =
+            Array.from(selectedTechnicalSkills);
 
-        const skillsToSend = selectedSkills.size
-            ? Array.from(selectedSkills)
-            : (skill ? [skill] : []);
+        const softSkillsToSend =
+            Array.from(selectedSoftSkills);
+
+        const skillsToSend = [
+            ...technicalSkillsToSend,
+            ...softSkillsToSend
+        ];
 
         const country = regionFilter
             ? regionFilter.value
@@ -1141,11 +1029,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             return;
         }
-
-
-        pushSearchHistory(
-            query || role || (skillsToSend[0] || "")
-        );
 
 
         /* =================================================
@@ -1179,7 +1062,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (results) {
-            results.innerHTML = renderSkeletonCards();
+            results.innerHTML = "";
         }
 
         if (resultCount) {
@@ -1240,6 +1123,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         skills:
                             skillsToSend,
 
+                        technical_skills:
+                            technicalSkillsToSend,
+
+                        soft_skills:
+                            softSkillsToSend,
+
                         location:
                             location,
 
@@ -1273,12 +1162,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     : [];
 
 
-            displayResults(candidates, {
-                role: role || query,
-                skills: skillsToSend,
-                location: location,
-                experience: experience
-            });
+            displayResults(candidates);
 
         }
 
@@ -1466,86 +1350,7 @@ document.addEventListener("DOMContentLoaded", () => {
        DISPLAY SEARCH RESULTS
     ===================================================== */
 
-    /* =====================================================
-       MATCH INDICATOR
-       ---------------------------------------------------
-       A lightweight, transparent relevance signal: how many
-       of the search criteria you actually entered (role,
-       skills, location, experience) show up somewhere in
-       the candidate's title/description text. This is not
-       an ML score from the backend — it's a plain keyword
-       overlap count, shown as "3/4 criteria matched" so it
-       never overstates its own precision.
-    ===================================================== */
-
-    function computeMatchLabel(candidate, criteria) {
-
-        const haystack =
-            [
-                candidate.title,
-                candidate.name,
-                candidate.content,
-                candidate.description,
-                candidate.current_role,
-                candidate.role,
-                candidate.location
-            ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
-
-
-        const terms = [];
-
-        if (criteria.role) {
-            terms.push(String(criteria.role));
-        }
-
-        if (Array.isArray(criteria.skills)) {
-            terms.push(...criteria.skills);
-        }
-
-        if (criteria.location) {
-            terms.push(String(criteria.location));
-        }
-
-        if (criteria.experience) {
-            terms.push(String(criteria.experience));
-        }
-
-
-        const uniqueTerms =
-            Array.from(
-                new Set(
-                    terms
-                        .map(term => term.trim())
-                        .filter(Boolean)
-                )
-            );
-
-
-        if (!uniqueTerms.length || !haystack) {
-            return null;
-        }
-
-
-        const matchedTerms =
-            uniqueTerms.filter(term =>
-                haystack.includes(term.toLowerCase())
-            );
-
-
-        return {
-            matched: matchedTerms.length,
-            total: uniqueTerms.length
-        };
-    }
-
-
-    function displayResults(candidates, criteria) {
-
-        const searchCriteria =
-            criteria || {};
+    function displayResults(candidates) {
 
         if (resultCount) {
             resultCount.textContent =
@@ -1672,20 +1477,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div>
 
                                 <div class="match">
-                                    ${(() => {
-
-                                        const match =
-                                            computeMatchLabel(
-                                                candidate,
-                                                searchCriteria
-                                            );
-
-                                        if (!match) {
-                                            return `Result ${index + 1}`;
-                                        }
-
-                                        return `${match.matched}/${match.total} criteria matched`;
-                                    })()}
+                                    Result ${index + 1}
                                 </div>
 
                                 <div class="source">
@@ -3105,10 +2897,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
 
-            const response =
-                await apiFetch(
-                    `/candidates/${candidateId}`,
-                    {
+           await apiFetch(
+                "/candidates/${candidateId}",
+    {
                         method: "DELETE"
                     }
                 );
@@ -3177,36 +2968,6 @@ document.addEventListener("DOMContentLoaded", () => {
     /* =====================================================
        HELPERS
     ===================================================== */
-
-    /* =====================================================
-       SKELETON LOADING CARDS
-       ---------------------------------------------------
-       Shown inside #results while a search is in flight,
-       so the wait reads as "candidates are loading" instead
-       of a blank panel behind the spinner.
-    ===================================================== */
-
-    function renderSkeletonCards(count = 4) {
-
-        return Array.from({ length: count })
-            .map(() => `
-                <div class="candidate-card skeleton-card">
-                    <div class="candidate-main">
-                        <div class="avatar skeleton-block"></div>
-                        <div class="candidate-text-content">
-                            <div class="skeleton-line skeleton-line-title"></div>
-                            <div class="skeleton-line skeleton-line-wide"></div>
-                            <div class="skeleton-line skeleton-line-narrow"></div>
-                        </div>
-                    </div>
-                    <div class="candidate-actions">
-                        <div class="skeleton-line skeleton-line-tag"></div>
-                    </div>
-                </div>
-            `)
-            .join("");
-    }
-
 
     function getInitials(text) {
 
@@ -3611,98 +3372,6 @@ document.addEventListener("DOMContentLoaded", () => {
         await loadOutreachCandidates();
 
         loadOutreachHistory();
-
-        processBulkOutreachQueue();
-    }
-
-
-    /* =====================================================
-       BULK OUTREACH QUEUE
-       ---------------------------------------------------
-       "Generate Outreach for Selected" on the Talent Pool
-       page stores the chosen candidate ids under this key
-       and opens this tab. Every queued candidate gets a
-       generated draft saved to Outreach History in one go.
-    ===================================================== */
-
-    const BULK_OUTREACH_QUEUE_KEY =
-        "insai_bulk_outreach_queue";
-
-    function processBulkOutreachQueue() {
-
-        let queuedIds = [];
-
-        try {
-
-            queuedIds =
-                JSON.parse(
-                    localStorage.getItem(
-                        BULK_OUTREACH_QUEUE_KEY
-                    ) || "[]"
-                );
-
-        } catch (error) {
-
-            queuedIds = [];
-        }
-
-
-        if (!Array.isArray(queuedIds) || !queuedIds.length) {
-            return;
-        }
-
-
-        /* Clear immediately so a page refresh never reprocesses it. */
-
-        localStorage.removeItem(
-            BULK_OUTREACH_QUEUE_KEY
-        );
-
-
-        let generatedCount = 0;
-
-        queuedIds.forEach(id => {
-
-            const candidate =
-                outreachCandidates.find(c =>
-                    String(c.id) === String(id)
-                );
-
-            if (!candidate) {
-                return;
-            }
-
-            selectOutreachCandidate(candidate);
-            saveOutreachDraft();
-
-            generatedCount++;
-        });
-
-
-        if (generatedCount) {
-
-            showOutreachStatus(
-                `✓ Generated ${generatedCount} outreach draft` +
-                `${generatedCount === 1 ? "" : "s"} for the candidates ` +
-                `you selected in Talent Pool.`
-            );
-
-            const selectedCount =
-                document.getElementById(
-                    "outreachSelected"
-                );
-
-            if (selectedCount) {
-                selectedCount.textContent =
-                    generatedCount;
-            }
-
-        } else {
-
-            showOutreachStatus(
-                "Selected candidates could not be found in your Talent Pool."
-            );
-        }
     }
 
 
@@ -4564,38 +4233,26 @@ ${RECRUITER_BRAND}`;
         };
 
 
-        /*
-         * FIX: drafts used to be saved under a separate
-         * "talentreach_outreach_drafts" key that nothing
-         * ever read back, so saved drafts silently
-         * disappeared. They now go into the same history
-         * list the Outreach History panel reads, tagged
-         * with status "Draft" so sent vs. drafted stays
-         * distinguishable.
-         */
-
-        const history =
+        const drafts =
             JSON.parse(
                 localStorage.getItem(
-                    "talentreach_outreach_history"
+                    "talentreach_outreach_drafts"
                 ) || "[]"
             );
 
 
-        history.unshift(draft);
+        drafts.unshift(draft);
 
 
         localStorage.setItem(
-            "talentreach_outreach_history",
-            JSON.stringify(history)
+            "talentreach_outreach_drafts",
+            JSON.stringify(drafts)
         );
 
 
         showOutreachStatus(
             "✓ Outreach draft saved successfully."
         );
-
-        loadOutreachHistory();
     }
 
 
@@ -4982,10 +4639,7 @@ ${RECRUITER_BRAND}`;
 
 
                             <span class="outreach-history-status">
-                                ${escapeHTML(
-                                    item.status ||
-                                    "Opened in Gmail"
-                                )}
+                                Opened in Gmail
                             </span>
 
                         </div>
