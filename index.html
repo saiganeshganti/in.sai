@@ -1059,31 +1059,77 @@
                                 Any role
                             </option>
 
-                            <option>Accountant</option>
+                            <optgroup label="Human Resources">
+                                <option>HR Executive</option>
+                                <option>HR Generalist</option>
+                                <option>HR Manager</option>
+                                <option>Recruiter</option>
+                                <option>Talent Acquisition Specialist</option>
+                                <option>HR Business Partner</option>
+                                <option>Learning &amp; Development Executive</option>
+                                <option>Compensation &amp; Benefits Analyst</option>
+                            </optgroup>
 
-                            <option>Accounts Executive</option>
+                            <optgroup label="Finance &amp; Accounts">
+                                <option>Accountant</option>
+                                <option>Accounts Executive</option>
+                                <option>Financial Analyst</option>
+                                <option>Finance Executive</option>
+                                <option>Finance Manager</option>
+                                <option>Audit Associate</option>
+                                <option>Tax Consultant</option>
+                                <option>Investment Analyst</option>
+                                <option>Credit Analyst</option>
+                            </optgroup>
 
-                            <option>Financial Analyst</option>
+                            <optgroup label="Sales &amp; Marketing">
+                                <option>Sales Executive</option>
+                                <option>Sales Manager</option>
+                                <option>Business Development Executive</option>
+                                <option>Marketing Executive</option>
+                                <option>Marketing Manager</option>
+                                <option>Digital Marketing Executive</option>
+                                <option>Content Marketing Specialist</option>
+                                <option>Brand Manager</option>
+                                <option>Key Account Manager</option>
+                            </optgroup>
 
-                            <option>Finance Executive</option>
+                            <optgroup label="Operations &amp; Strategy">
+                                <option>Operations Executive</option>
+                                <option>Operations Manager</option>
+                                <option>Business Analyst</option>
+                                <option>Project Coordinator</option>
+                                <option>Project Manager</option>
+                                <option>Supply Chain Executive</option>
+                                <option>Procurement Executive</option>
+                                <option>Strategy Associate</option>
+                            </optgroup>
 
-                            <option>HR Executive</option>
+                            <optgroup label="Technology">
+                                <option>Software Developer</option>
+                                <option>Data Analyst</option>
+                                <option>Data Scientist</option>
+                                <option>QA / Test Engineer</option>
+                                <option>DevOps Engineer</option>
+                                <option>Product Manager</option>
+                                <option>UI/UX Designer</option>
+                                <option>IT Support Executive</option>
+                            </optgroup>
 
-                            <option>Recruiter</option>
+                            <optgroup label="Customer &amp; Support">
+                                <option>Customer Service</option>
+                                <option>Customer Success Manager</option>
+                                <option>Client Relationship Executive</option>
+                                <option>Call Center Executive</option>
+                            </optgroup>
 
-                            <option>Marketing Executive</option>
-
-                            <option>Sales Executive</option>
-
-                            <option>Business Analyst</option>
-
-                            <option>Data Analyst</option>
-
-                            <option>Software Developer</option>
-
-                            <option>Operations Executive</option>
-
-                            <option>Customer Service</option>
+                            <optgroup label="Admin &amp; General Management">
+                                <option>Administrative Executive</option>
+                                <option>Office Manager</option>
+                                <option>Management Trainee</option>
+                                <option>General Manager</option>
+                                <option>Executive Assistant</option>
+                            </optgroup>
 
                         </select>
 
@@ -1093,13 +1139,14 @@
 
                     <!-- SKILL -->
 
-                    <div class="filter">
+                    <div class="filter filter-skills">
 
                         <label for="skillFilter">
-                            Skill
+                            Skills
+                            <span class="skill-summary" id="skillSummary">No skills selected</span>
                         </label>
 
-                        <select id="skillFilter">
+                        <select id="skillFilter" style="display:none;">
 
                             <option value="">
                                 Any skill
@@ -1122,6 +1169,47 @@
                             <option>Digital Marketing</option>
 
                         </select>
+
+                        <div class="skill-picker">
+
+                            <div class="skill-group">
+
+                                <div class="skill-group-label">
+                                    Technical
+                                </div>
+
+                                <div class="skill-chip-row">
+                                    <button type="button" class="skill-chip" data-skill="Excel">Excel</button>
+                                    <button type="button" class="skill-chip" data-skill="Tally">Tally</button>
+                                    <button type="button" class="skill-chip" data-skill="Power BI">Power BI</button>
+                                    <button type="button" class="skill-chip" data-skill="SQL">SQL</button>
+                                    <button type="button" class="skill-chip" data-skill="Python">Python</button>
+                                    <button type="button" class="skill-chip" data-skill="SAP">SAP</button>
+                                    <button type="button" class="skill-chip" data-skill="Financial Modeling">Financial Modeling</button>
+                                    <button type="button" class="skill-chip" data-skill="Digital Marketing">Digital Marketing</button>
+                                    <button type="button" class="skill-chip" data-skill="Data Analysis">Data Analysis</button>
+                                </div>
+
+                            </div>
+
+                            <div class="skill-group">
+
+                                <div class="skill-group-label">
+                                    Soft skills
+                                </div>
+
+                                <div class="skill-chip-row">
+                                    <button type="button" class="skill-chip" data-skill="Communication">Communication</button>
+                                    <button type="button" class="skill-chip" data-skill="Negotiation">Negotiation</button>
+                                    <button type="button" class="skill-chip" data-skill="Team Leadership">Team Leadership</button>
+                                    <button type="button" class="skill-chip" data-skill="Stakeholder Management">Stakeholder Management</button>
+                                    <button type="button" class="skill-chip" data-skill="Client Handling">Client Handling</button>
+                                    <button type="button" class="skill-chip" data-skill="Problem Solving">Problem Solving</button>
+                                </div>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
@@ -1167,6 +1255,46 @@
 
                             <option value="Singapore">
                                 Singapore
+                            </option>
+
+                            <option value="Germany">
+                                Germany
+                            </option>
+
+                            <option value="France">
+                                France
+                            </option>
+
+                            <option value="Netherlands">
+                                Netherlands
+                            </option>
+
+                            <option value="Ireland">
+                                Ireland
+                            </option>
+
+                            <option value="New Zealand">
+                                New Zealand
+                            </option>
+
+                            <option value="Saudi Arabia">
+                                Saudi Arabia
+                            </option>
+
+                            <option value="Qatar">
+                                Qatar
+                            </option>
+
+                            <option value="Malaysia">
+                                Malaysia
+                            </option>
+
+                            <option value="South Africa">
+                                South Africa
+                            </option>
+
+                            <option value="Philippines">
+                                Philippines
                             </option>
 
                         </select>
@@ -1439,11 +1567,11 @@
 
                     <div>
 
-                        <strong>
+                        <strong id="loadingTitle">
                             Searching...
                         </strong>
 
-                        <p>
+                        <p id="loadingSubtitle">
                             Finding relevant candidate profiles.
                         </p>
 
