@@ -6,6 +6,14 @@ const API_BASE_URL = "https://in-sai.onrender.com";
 
 
 /* ---------------------------------------------------------
+   Bulk selection state
+--------------------------------------------------------- */
+
+let currentCandidates = [];
+const selectedCandidateIds = new Set();
+
+
+/* ---------------------------------------------------------
    Load Talent Pool
 --------------------------------------------------------- */
 
@@ -171,6 +179,11 @@ function renderCandidates(candidates) {
     results.innerHTML = "";
 
 
+    currentCandidates = candidates;
+    selectedCandidateIds.clear();
+    updateBulkToolbar();
+
+
     candidates.forEach(candidate => {
 
         const card =
@@ -287,6 +300,14 @@ function renderCandidates(candidates) {
         card.innerHTML = `
 
             <div class="candidate-main">
+
+                <label class="candidate-select">
+                    <input
+                        type="checkbox"
+                        class="candidate-select-checkbox"
+                        data-candidate-id="${candidate.id}"
+                    >
+                </label>
 
                 <div class="avatar">
                     ${initials}
@@ -469,6 +490,29 @@ function renderCandidates(candidates) {
 
 
         results.appendChild(card);
+
+
+        const selectCheckbox =
+            card.querySelector(".candidate-select-checkbox");
+
+        if (selectCheckbox) {
+
+            selectCheckbox.addEventListener(
+                "change",
+                () => {
+
+                    const id = candidate.id;
+
+                    if (selectCheckbox.checked) {
+                        selectedCandidateIds.add(id);
+                    } else {
+                        selectedCandidateIds.delete(id);
+                    }
+
+                    updateBulkToolbar();
+                }
+            );
+        }
 
 
         const githubButton =
@@ -939,6 +983,302 @@ function escapeAttribute(value) {
 
 
 /* ---------------------------------------------------------
+   Bulk toolbar
+--------------------------------------------------------- */
+
+function getSelectedCandidates() {
+
+    return currentCandidates.filter(candidate =>
+        selectedCandidateIds.has(candidate.id)
+    );
+}
+
+
+function updateBulkToolbar() {
+
+    const countLabel =
+        document.getElementById("bulkSelectedCount");
+
+    const exportButton =
+        document.getElementById("exportSelectedCsv");
+
+    const removeButton =
+        document.getElementById("removeSelectedCandidates");
+
+    const outreachButton =
+        document.getElementById("generateOutreachSelected");
+
+    const selectAllCheckbox =
+        document.getElementById("selectAllCandidates");
+
+    const selectedCount = selectedCandidateIds.size;
+
+
+    if (countLabel) {
+        countLabel.textContent =
+            `${selectedCount} selected`;
+    }
+
+
+    [exportButton, removeButton, outreachButton].forEach(button => {
+
+        if (button) {
+            button.disabled = selectedCount === 0;
+        }
+    });
+
+
+    if (selectAllCheckbox) {
+
+        const total = currentCandidates.length;
+
+        selectAllCheckbox.checked =
+            total > 0 && selectedCount === total;
+
+        selectAllCheckbox.indeterminate =
+            selectedCount > 0 && selectedCount < total;
+    }
+}
+
+
+function handleSelectAllChange(checked) {
+
+    selectedCandidateIds.clear();
+
+    if (checked) {
+
+        currentCandidates.forEach(candidate => {
+            selectedCandidateIds.add(candidate.id);
+        });
+    }
+
+
+    document
+        .querySelectorAll(".candidate-select-checkbox")
+        .forEach(checkbox => {
+
+            const id =
+                Number(checkbox.dataset.candidateId);
+
+            checkbox.checked =
+                selectedCandidateIds.has(id);
+        });
+
+
+    updateBulkToolbar();
+}
+
+
+/* ---------------------------------------------------------
+   CSV export (selected candidates only)
+--------------------------------------------------------- */
+
+function escapeCsvValue(value) {
+
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    const stringValue = String(value);
+
+    if (/[",\n]/.test(stringValue)) {
+
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+
+    return stringValue;
+}
+
+
+function exportSelectedToCsv() {
+
+    const selected = getSelectedCandidates();
+
+    if (!selected.length) {
+        return;
+    }
+
+
+    const columns = [
+        { key: "name", label: "Name" },
+        { key: "current_role", label: "Role" },
+        { key: "company", label: "Company" },
+        { key: "experience", label: "Experience" },
+        { key: "gender", label: "Gender" },
+        { key: "skills", label: "Skills" },
+        { key: "finance_category", label: "Finance Category" },
+        { key: "finance_subcategory", label: "Specialization" },
+        { key: "email", label: "Email" },
+        { key: "linkedin_url", label: "LinkedIn" }
+    ];
+
+
+    const rows = selected.map(candidate => {
+
+        const locationParts = [
+            candidate.city,
+            candidate.state,
+            candidate.region
+        ].filter(Boolean);
+
+        const location =
+            locationParts.length
+                ? locationParts.join(", ")
+                : (candidate.location || "");
+
+        return [
+            ...columns.map(column =>
+                escapeCsvValue(candidate[column.key])
+            ),
+            escapeCsvValue(location)
+        ].join(",");
+    });
+
+
+    const header =
+        [...columns.map(column => column.label), "Location"]
+            .map(escapeCsvValue)
+            .join(",");
+
+    const csvContent =
+        [header, ...rows].join("\r\n");
+
+    const blob = new Blob(
+        [csvContent],
+        { type: "text/csv;charset=utf-8;" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download =
+        `talent-pool-selected-${Date.now()}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+}
+
+
+/* ---------------------------------------------------------
+   Bulk remove
+--------------------------------------------------------- */
+
+async function removeSelectedCandidates() {
+
+    const selected = getSelectedCandidates();
+
+    if (!selected.length) {
+        return;
+    }
+
+    const confirmed = confirm(
+        `Remove ${selected.length} selected candidate` +
+        `${selected.length === 1 ? "" : "s"} from your Talent Pool?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    const removeButton =
+        document.getElementById("removeSelectedCandidates");
+
+    if (removeButton) {
+        removeButton.disabled = true;
+        removeButton.textContent = "Removing...";
+    }
+
+
+    const failures = [];
+
+    for (const candidate of selected) {
+
+        try {
+
+            const response = await fetch(
+                `${API_BASE_URL}/candidates/${candidate.id}`,
+                { method: "DELETE" }
+            );
+
+            if (!response.ok) {
+                failures.push(candidate.name || candidate.id);
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Bulk remove error:",
+                error
+            );
+
+            failures.push(candidate.name || candidate.id);
+        }
+    }
+
+
+    if (removeButton) {
+        removeButton.disabled = false;
+        removeButton.textContent = "Remove Selected";
+    }
+
+
+    if (failures.length) {
+
+        alert(
+            `Some candidates could not be removed: ` +
+            `${failures.join(", ")}`
+        );
+    }
+
+
+    await loadTalentPool();
+}
+
+
+/* ---------------------------------------------------------
+   Bulk outreach queue
+
+   NOTE: This queues the selected candidates for outreach
+   and hands off to the Outreach page. The Outreach page
+   itself needs matching logic to read this queue and
+   auto-generate one draft per candidate — that lives in
+   outreach.html / its script, which isn't wired up here.
+--------------------------------------------------------- */
+
+function generateOutreachForSelected() {
+
+    const selected = getSelectedCandidates();
+
+    if (!selected.length) {
+        return;
+    }
+
+    const queue = selected.map(candidate => ({
+        id: candidate.id,
+        name: candidate.name || "",
+        email: candidate.email || "",
+        current_role: candidate.current_role || "",
+        company: candidate.company || "",
+        skills: candidate.skills || "",
+        linkedin_url: candidate.linkedin_url || ""
+    }));
+
+    localStorage.setItem(
+        "talentreach_outreach_queue",
+        JSON.stringify(queue)
+    );
+
+    window.location.href = "/outreach.html";
+}
+
+
+/* ---------------------------------------------------------
    Start Talent Pool
 --------------------------------------------------------- */
 
@@ -947,6 +1287,54 @@ document.addEventListener(
     () => {
 
         loadTalentPool();
+
+
+        const selectAllCheckbox =
+            document.getElementById("selectAllCandidates");
+
+        if (selectAllCheckbox) {
+
+            selectAllCheckbox.addEventListener(
+                "change",
+                () => handleSelectAllChange(selectAllCheckbox.checked)
+            );
+        }
+
+
+        const exportButton =
+            document.getElementById("exportSelectedCsv");
+
+        if (exportButton) {
+
+            exportButton.addEventListener(
+                "click",
+                exportSelectedToCsv
+            );
+        }
+
+
+        const removeButton =
+            document.getElementById("removeSelectedCandidates");
+
+        if (removeButton) {
+
+            removeButton.addEventListener(
+                "click",
+                removeSelectedCandidates
+            );
+        }
+
+
+        const outreachButton =
+            document.getElementById("generateOutreachSelected");
+
+        if (outreachButton) {
+
+            outreachButton.addEventListener(
+                "click",
+                generateOutreachForSelected
+            );
+        }
 
     }
 );
