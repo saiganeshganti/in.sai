@@ -1701,6 +1701,115 @@ main {
 
 
 /* =========================================================
+   SEARCH INSIGHTS (charts built from live results)
+========================================================= */
+
+.insights-panel {
+    display:
+        grid;
+
+    grid-template-columns:
+        1.4fr 1fr;
+
+    gap:
+        16px;
+
+    margin-bottom:
+        22px;
+}
+
+@media (max-width: 850px) {
+
+    .insights-panel {
+        grid-template-columns:
+            1fr;
+    }
+}
+
+.insight-card {
+    padding:
+        18px 20px;
+
+    border:
+        1px solid #3c272d;
+
+    border-radius:
+        13px;
+
+    background:
+        #241419;
+
+    box-shadow:
+        var(--shadow-sm);
+}
+
+.insight-title {
+    color:
+        #bba9ad;
+
+    font-size:
+        10px;
+
+    font-weight:
+        750;
+
+    letter-spacing:
+        0.4px;
+
+    text-transform:
+        uppercase;
+
+    margin-bottom:
+        10px;
+}
+
+.insight-legend {
+    display:
+        flex;
+
+    justify-content:
+        center;
+
+    gap:
+        12px;
+
+    margin-top:
+        10px;
+
+    font-size:
+        9px;
+
+    color:
+        #9c898e;
+}
+
+.insight-legend span {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+}
+
+.insight-legend i {
+    display:
+        inline-block;
+
+    width:
+        8px;
+
+    height:
+        8px;
+
+    border-radius:
+        50%;
+}
+
+
+/* =========================================================
    LOCATION NOTE
 ========================================================= */
 
@@ -4556,31 +4665,6 @@ nav a.active::after {
 }
 
 /* =========================================================
-   FINAL CURSOR RULE
-   Keep the existing UI colours and JavaScript behaviour.
-   Hide the mouse cursor everywhere except editable text fields.
-========================================================= */
-
-html,
-body,
-body *,
-button,
-a,
-select,
-label,
-.card,
-.navbar,
-.navbar nav a {
-    cursor: none !important;
-}
-
-input,
-textarea,
-[contenteditable="true"],
-[contenteditable=""] {
-    cursor: text !important;
-}
-/* =========================================================
    IN SAI AI RECRUITER
    FINAL UI FIX
    Cursor + Results Buttons + Search Status
@@ -4625,6 +4709,14 @@ button,
 .category,
 .clickable,
 [role="button"] {
+    cursor: pointer !important;
+}
+
+/* Explicit: Search / Talent Pool / Outreach tabs must always show a pointer */
+.navbar nav a,
+#searchNav,
+#talentPoolNav,
+#outreachNav {
     cursor: pointer !important;
 }
 
