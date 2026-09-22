@@ -308,6 +308,125 @@
                 width: 100%;
             }
         }
+
+
+        /* =====================================================
+           BULK OUTREACH QUEUE
+        ====================================================== */
+
+        .bulk-queue-subtitle {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .bulk-queue-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .bulk-queue-field label {
+            margin-bottom: 6px;
+        }
+
+        .bulk-queue-field select {
+            margin-bottom: 0;
+        }
+
+        .bulk-queue-progress {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #2563eb;
+            font-weight: 600;
+            min-height: 18px;
+        }
+
+        .bulk-queue-results {
+            display: grid;
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .bulk-queue-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 16px;
+            background: #f8fafc;
+        }
+
+        .bulk-queue-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .bulk-queue-item-name {
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .bulk-queue-item-status {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .bulk-queue-item-subject {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #111827;
+        }
+
+        .bulk-queue-item-body {
+            font-size: 13px;
+            color: #374151;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            max-height: 160px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .bulk-queue-item-error {
+            font-size: 13px;
+            color: #b91c1c;
+        }
+
+        .bulk-queue-item-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .bulk-queue-item-actions button {
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            padding: 7px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .bulk-queue-item-actions button:hover:not(:disabled) {
+            background: #f3f4f6;
+        }
+
+        .bulk-queue-item-actions button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 800px) {
+
+            .bulk-queue-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+
     </style>
 </head>
 
@@ -339,6 +458,65 @@
             Create professional, personalized recruitment emails
             for candidates in your Talent Pool.
         </p>
+
+    </div>
+
+
+    <!-- ==========================================
+         BULK OUTREACH QUEUE (from Talent Pool)
+    =========================================== -->
+
+    <div id="bulkQueueCard" class="card bulk-queue-card" style="display:none; margin-bottom:25px;">
+
+        <h2>
+            Bulk Outreach Queue
+        </h2>
+
+        <p class="bulk-queue-subtitle">
+            <span id="bulkQueueCount">0</span> candidate(s) queued from your Talent Pool selection.
+            One email will be generated per candidate.
+        </p>
+
+        <div class="bulk-queue-controls">
+
+            <div class="bulk-queue-field">
+                <label for="bulkEmailType">Email Type</label>
+                <select id="bulkEmailType">
+                    <option value="initial_outreach">Initial Outreach</option>
+                    <option value="internship">Internship Opportunity</option>
+                    <option value="interview">Interview Invitation</option>
+                    <option value="follow_up">Follow-up</option>
+                    <option value="shortlist">Shortlist / Next Steps</option>
+                </select>
+            </div>
+
+            <div class="bulk-queue-field">
+                <label for="bulkTone">Email Tone</label>
+                <select id="bulkTone">
+                    <option value="professional">Professional</option>
+                    <option value="formal">Formal</option>
+                    <option value="friendly">Professional & Friendly</option>
+                    <option value="concise">Concise</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div class="actions">
+
+            <button id="generateQueueBtn" class="generate-btn" type="button" style="width:auto; padding:13px 20px;">
+                Generate All Emails
+            </button>
+
+            <button id="clearQueueBtn" class="draft-btn" type="button">
+                Clear Queue
+            </button>
+
+        </div>
+
+        <div id="bulkQueueProgress" class="bulk-queue-progress"></div>
+
+        <div id="bulkQueueResults" class="bulk-queue-results"></div>
 
     </div>
 
@@ -592,6 +770,320 @@
 
     const generatedIndicator =
         document.getElementById("generatedIndicator");
+
+
+    // =====================================================
+    // BULK OUTREACH QUEUE (from Talent Pool)
+    // =====================================================
+
+    const QUEUE_STORAGE_KEY = "talentreach_outreach_queue";
+
+    let outreachQueue = [];
+
+    const bulkQueueCard =
+        document.getElementById("bulkQueueCard");
+
+    const bulkQueueCount =
+        document.getElementById("bulkQueueCount");
+
+    const bulkEmailType =
+        document.getElementById("bulkEmailType");
+
+    const bulkTone =
+        document.getElementById("bulkTone");
+
+    const generateQueueBtn =
+        document.getElementById("generateQueueBtn");
+
+    const clearQueueBtn =
+        document.getElementById("clearQueueBtn");
+
+    const bulkQueueProgress =
+        document.getElementById("bulkQueueProgress");
+
+    const bulkQueueResults =
+        document.getElementById("bulkQueueResults");
+
+
+    function loadOutreachQueue() {
+
+        let stored = null;
+
+        try {
+
+            stored = localStorage.getItem(QUEUE_STORAGE_KEY);
+
+        } catch (error) {
+
+            console.error("Queue read error:", error);
+            return;
+        }
+
+        if (!stored) {
+            return;
+        }
+
+        try {
+
+            const parsed = JSON.parse(stored);
+
+            outreachQueue =
+                Array.isArray(parsed) ? parsed : [];
+
+        } catch (error) {
+
+            console.error("Queue parse error:", error);
+            outreachQueue = [];
+        }
+
+        if (!outreachQueue.length) {
+            return;
+        }
+
+        if (bulkQueueCard) {
+            bulkQueueCard.style.display = "block";
+        }
+
+        if (bulkQueueCount) {
+            bulkQueueCount.textContent =
+                String(outreachQueue.length);
+        }
+    }
+
+
+    function clearOutreachQueue() {
+
+        try {
+
+            localStorage.removeItem(QUEUE_STORAGE_KEY);
+
+        } catch (error) {
+
+            console.error("Queue clear error:", error);
+        }
+
+        outreachQueue = [];
+
+        if (bulkQueueCard) {
+            bulkQueueCard.style.display = "none";
+        }
+
+        if (bulkQueueResults) {
+            bulkQueueResults.innerHTML = "";
+        }
+
+        if (bulkQueueProgress) {
+            bulkQueueProgress.textContent = "";
+        }
+    }
+
+
+    async function generateQueueEmails() {
+
+        if (!outreachQueue.length) {
+            return;
+        }
+
+        generateQueueBtn.disabled = true;
+        clearQueueBtn.disabled = true;
+
+        bulkQueueResults.innerHTML = "";
+
+        const total = outreachQueue.length;
+
+        for (let index = 0; index < total; index++) {
+
+            const queuedCandidate = outreachQueue[index];
+
+            bulkQueueProgress.textContent =
+                `Generating ${index + 1} of ${total}: ` +
+                `${queuedCandidate.name || "Candidate"}...`;
+
+            const item = document.createElement("div");
+            item.className = "bulk-queue-item";
+
+            item.innerHTML = `
+                <div class="bulk-queue-item-header">
+                    <span class="bulk-queue-item-name">
+                        ${escapeHtml(queuedCandidate.name || "Unnamed Candidate")}
+                    </span>
+                    <span class="bulk-queue-item-status">
+                        Generating...
+                    </span>
+                </div>
+            `;
+
+            bulkQueueResults.appendChild(item);
+
+            try {
+
+                const response = await fetch(
+                    `${API_BASE_URL}/generate-email`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify({
+                            candidate_id: queuedCandidate.id,
+                            email_type: bulkEmailType.value,
+                            tone: bulkTone.value
+                        })
+                    }
+                );
+
+                let data;
+
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    throw new Error("The server returned an invalid response.");
+                }
+
+                if (!response.ok) {
+
+                    let errorMessage = "Email generation failed.";
+
+                    if (data && data.detail) {
+                        errorMessage =
+                            typeof data.detail === "string"
+                                ? data.detail
+                                : JSON.stringify(data.detail);
+                    }
+
+                    throw new Error(errorMessage);
+                }
+
+                const subject = data.subject || "";
+                const body = data.body || data.email_body || "";
+
+                if (!subject && !body) {
+                    throw new Error("AI returned an empty email.");
+                }
+
+                renderQueueItemResult(
+                    item,
+                    queuedCandidate,
+                    subject,
+                    body
+                );
+
+            } catch (error) {
+
+                console.error("Bulk generate error:", error);
+
+                item.innerHTML = `
+                    <div class="bulk-queue-item-header">
+                        <span class="bulk-queue-item-name">
+                            ${escapeHtml(queuedCandidate.name || "Unnamed Candidate")}
+                        </span>
+                        <span class="bulk-queue-item-status">
+                            Failed
+                        </span>
+                    </div>
+                    <div class="bulk-queue-item-error">
+                        ${escapeHtml(error.message || "Unable to generate email.")}
+                    </div>
+                `;
+            }
+        }
+
+        bulkQueueProgress.textContent =
+            `Done. Generated emails for ${total} candidate${total === 1 ? "" : "s"}.`;
+
+        generateQueueBtn.disabled = false;
+        clearQueueBtn.disabled = false;
+    }
+
+
+    function renderQueueItemResult(item, queuedCandidate, subject, body) {
+
+        item.innerHTML = `
+            <div class="bulk-queue-item-header">
+                <span class="bulk-queue-item-name">
+                    ${escapeHtml(queuedCandidate.name || "Unnamed Candidate")}
+                </span>
+                <span class="bulk-queue-item-status">
+                    Ready
+                </span>
+            </div>
+            <div class="bulk-queue-item-subject">
+                ${escapeHtml(subject)}
+            </div>
+            <div class="bulk-queue-item-body">${escapeHtml(body)}</div>
+            <div class="bulk-queue-item-actions">
+                <button type="button" class="queue-copy-btn">Copy Email</button>
+                <button type="button" class="queue-gmail-btn" ${queuedCandidate.email ? "" : "disabled"}>Open in Gmail</button>
+            </div>
+        `;
+
+        const copyButton = item.querySelector(".queue-copy-btn");
+        const gmailButton = item.querySelector(".queue-gmail-btn");
+
+        if (copyButton) {
+
+            copyButton.addEventListener("click", async () => {
+
+                try {
+
+                    await navigator.clipboard.writeText(
+                        "Subject: " + subject + "\n\n" + body
+                    );
+
+                    copyButton.textContent = "Copied!";
+
+                    setTimeout(() => {
+                        copyButton.textContent = "Copy Email";
+                    }, 1500);
+
+                } catch (error) {
+                    console.error("Queue copy error:", error);
+                }
+            });
+        }
+
+        if (gmailButton) {
+
+            gmailButton.addEventListener("click", () => {
+
+                const candidateEmail =
+                    queuedCandidate.email
+                        ? String(queuedCandidate.email).trim()
+                        : "";
+
+                if (!candidateEmail) {
+                    return;
+                }
+
+                const gmailUrl =
+                    "https://mail.google.com/mail/?view=cm&fs=1" +
+                    "&to=" + encodeURIComponent(candidateEmail) +
+                    "&su=" + encodeURIComponent(subject) +
+                    "&body=" + encodeURIComponent(body);
+
+                window.open(gmailUrl, "_blank");
+            });
+        }
+    }
+
+
+    if (generateQueueBtn) {
+
+        generateQueueBtn.addEventListener(
+            "click",
+            generateQueueEmails
+        );
+    }
+
+
+    if (clearQueueBtn) {
+
+        clearQueueBtn.addEventListener(
+            "click",
+            clearOutreachQueue
+        );
+    }
 
 
     // =====================================================
@@ -1321,6 +1813,7 @@
     disableEmailActions();
 
     loadCandidates();
+    loadOutreachQueue();
 
 </script>
 
