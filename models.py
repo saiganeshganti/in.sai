@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -170,6 +170,44 @@ class Candidate(Base):
         nullable=True,
         default="active",
         index=True
+    )
+
+    # =========================
+    # Recruiter Notes / Tags
+    # =========================
+
+    notes = Column(
+        Text,
+        nullable=True
+    )
+
+    # =========================
+    # Do Not Contact Flag
+    # =========================
+    # When true, this candidate is skipped by bulk email sending
+    # and any future outreach automation, regardless of selection.
+
+    do_not_contact = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0"
+    )
+
+    # =========================
+    # Outreach Tracking
+    # =========================
+
+    last_contacted = Column(
+        DateTime,
+        nullable=True
+    )
+
+    emails_sent = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0"
     )
 
     # =========================
