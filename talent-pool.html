@@ -17,6 +17,88 @@
         href="/style.css"
     >
 
+    <style>
+
+        /* =====================================================
+           BULK TOOLBAR
+        ====================================================== */
+
+        .bulk-toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .bulk-select-all {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .bulk-selected-count {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .bulk-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .bulk-actions button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+
+        /* =====================================================
+           CANDIDATE SELECT CHECKBOX
+        ====================================================== */
+
+        .candidate-select {
+            display: flex;
+            align-items: flex-start;
+            margin-right: 4px;
+            cursor: pointer;
+        }
+
+        .candidate-select-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+
+        @media (max-width: 600px) {
+
+            .bulk-toolbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .bulk-actions {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .bulk-actions button {
+                flex: 1;
+            }
+
+        }
+
+    </style>
+
 </head>
 
 
@@ -532,6 +614,40 @@
 
             </div>
 
+
+
+            <!-- =================================================
+                 BULK TOOLBAR
+            ================================================== -->
+
+            <div class="bulk-toolbar" id="bulkToolbar">
+
+                <label class="bulk-select-all">
+                    <input type="checkbox" id="selectAllCandidates">
+                    Select All
+                </label>
+
+                <span class="bulk-selected-count" id="bulkSelectedCount">
+                    0 selected
+                </span>
+
+                <div class="bulk-actions">
+
+                    <button type="button" class="view-button" id="exportSelectedCsv" disabled>
+                        Export CSV
+                    </button>
+
+                    <button type="button" class="view-button" id="removeSelectedCandidates" disabled>
+                        Remove Selected
+                    </button>
+
+                    <button type="button" class="view-button" id="generateOutreachSelected" disabled>
+                        Generate Outreach for Selected
+                    </button>
+
+                </div>
+
+            </div>
 
 
             <!-- =================================================
