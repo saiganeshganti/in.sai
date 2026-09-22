@@ -293,6 +293,10 @@ function renderCandidates(candidates) {
             "active";
 
 
+        const doNotContact =
+            candidate.do_not_contact === true;
+
+
         /* -------------------------------------------------
            Candidate card
         ------------------------------------------------- */
@@ -322,6 +326,12 @@ function renderCandidates(candidates) {
                             candidate.name ||
                             "Unnamed Candidate"
                         )}
+
+                        ${
+                            doNotContact
+                                ? ` <span class="do-not-contact-badge" title="This candidate will be skipped by bulk emails">🚫 Do Not Contact</span>`
+                                : ""
+                        }
 
                     </div>
 
@@ -435,6 +445,25 @@ function renderCandidates(candidates) {
                         ""
                     }
 
+
+                    ${
+                        candidate.emails_sent
+                        ?
+                        `
+                        <div>
+                            <strong>
+                                Emails Sent
+                            </strong>
+
+                            <span>
+                                ${escapeHtml(String(candidate.emails_sent))}
+                            </span>
+                        </div>
+                        `
+                        :
+                        ""
+                    }
+
                 </div>
 
 
@@ -465,6 +494,15 @@ function renderCandidates(candidates) {
                         type="button"
                     >
                         ◉ GitHub Insights
+                    </button>
+
+
+                    <button
+                        class="view-button"
+                        type="button"
+                        onclick="toggleDoNotContact(${candidate.id}, ${!doNotContact})"
+                    >
+                        ${doNotContact ? "Allow Contact" : "Mark Do Not Contact"}
                     </button>
 
 
@@ -915,6 +953,38 @@ async function removeCandidate(candidateId) {
 
 
 /* ---------------------------------------------------------
+   Toggle Do Not Contact
+--------------------------------------------------------- */
+
+async function toggleDoNotContact(candidateId, newValue) {
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE_URL}/candidates/${candidateId}/notes`,
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ do_not_contact: newValue })
+                }
+            );
+
+        if (!response.ok) {
+            throw new Error("Could not update this candidate.");
+        }
+
+        await loadTalentPool();
+
+    } catch (error) {
+
+        console.error("Do Not Contact update error:", error);
+        alert(error.message);
+    }
+}
+
+
+/* ---------------------------------------------------------
    Get initials
 --------------------------------------------------------- */
 
@@ -1008,6 +1078,9 @@ function updateBulkToolbar() {
     const outreachButton =
         document.getElementById("generateOutreachSelected");
 
+    const sendEmailsButton =
+        document.getElementById("sendBulkEmailsButton");
+
     const selectAllCheckbox =
         document.getElementById("selectAllCandidates");
 
@@ -1020,7 +1093,7 @@ function updateBulkToolbar() {
     }
 
 
-    [exportButton, removeButton, outreachButton].forEach(button => {
+    [exportButton, removeButton, outreachButton, sendEmailsButton].forEach(button => {
 
         if (button) {
             button.disabled = selectedCount === 0;
@@ -1279,6 +1352,220 @@ function generateOutreachForSelected() {
 
 
 /* ---------------------------------------------------------
+   BULK EMAIL SENDING
+--------------------------------------------------------- */
+
+function openBulkEmailModal() {
+
+    const backdrop =
+        document.getElementById("bulkEmailModalBackdrop");
+
+    if (backdrop) {
+        backdrop.classList.remove("hidden");
+    }
+}
+
+
+function closeBulkEmailModal() {
+
+    const backdrop =
+        document.getElementById("bulkEmailModalBackdrop");
+
+    if (backdrop) {
+        backdrop.classList.add("hidden");
+    }
+}
+
+
+function renderBulkEmailResultRow(result) {
+
+    const statusClass =
+        result.status === "sent"
+            ? "status-sent"
+            : result.status === "skipped"
+                ? "status-skipped"
+                : "status-failed";
+
+    const statusLabel =
+        result.status === "sent"
+            ? "✓ Sent"
+            : result.status === "skipped"
+                ? "⤼ Skipped"
+                : "✕ Failed";
+
+    const name =
+        result.candidate_name || `Candidate #${result.candidate_id}`;
+
+    return `
+        <div class="bulk-email-result-row">
+            <span>${escapeHtml(name)}</span>
+            <span class="${statusClass}" title="${escapeAttribute(result.message || "")}">
+                ${statusLabel}
+            </span>
+        </div>
+    `;
+}
+
+
+async function sendBulkEmails() {
+
+    const selected = getSelectedCandidates();
+
+    if (!selected.length) {
+        return;
+    }
+
+    const confirmed = confirm(
+        `Send a personalized email to ${selected.length} selected ` +
+        `candidate${selected.length === 1 ? "" : "s"}? ` +
+        `Candidates with no email on file or marked Do Not Contact will be skipped.`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const sendButton =
+        document.getElementById("sendBulkEmailsButton");
+
+    const summary =
+        document.getElementById("bulkEmailSummary");
+
+    const resultsList =
+        document.getElementById("bulkEmailResultsList");
+
+    const title =
+        document.getElementById("bulkEmailModalTitle");
+
+    const subtitle =
+        document.getElementById("bulkEmailModalSubtitle");
+
+    if (sendButton) {
+        sendButton.disabled = true;
+        sendButton.textContent = "Sending...";
+    }
+
+    if (title) {
+        title.textContent = "Sending Bulk Emails...";
+    }
+
+    if (subtitle) {
+        subtitle.textContent =
+            "Generating and sending personalized emails. This can take a little while for larger batches — please keep this tab open.";
+    }
+
+    if (summary) {
+        summary.innerHTML = "";
+    }
+
+    if (resultsList) {
+        resultsList.innerHTML = `
+            <div class="bulk-email-result-row">
+                <span>Working...</span>
+                <span>⌛</span>
+            </div>
+        `;
+    }
+
+    openBulkEmailModal();
+
+    try {
+
+        const response = await fetch(`${API_BASE_URL}/send-bulk-emails`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                candidate_ids: selected.map(c => c.id),
+                email_type: "initial_outreach",
+                tone: "professional"
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || `HTTP ${response.status}`);
+        }
+
+        if (data.status === "unavailable") {
+
+            if (title) {
+                title.textContent = "Email Sending Not Configured";
+            }
+
+            if (subtitle) {
+                subtitle.textContent = "";
+            }
+
+            if (resultsList) {
+                resultsList.innerHTML = `
+                    <div class="bulk-email-result-row">
+                        <span>${escapeHtml(data.message || "Email sending is not configured.")}</span>
+                    </div>
+                `;
+            }
+
+            return;
+        }
+
+        if (title) {
+            title.textContent = "Bulk Email Results";
+        }
+
+        if (subtitle) {
+            subtitle.textContent = "";
+        }
+
+        if (summary) {
+            summary.innerHTML = `
+                <span>✓ ${data.sent_count || 0} sent</span>
+                <span>⤼ ${data.skipped_count || 0} skipped</span>
+                <span>✕ ${data.failed_count || 0} failed</span>
+            `;
+        }
+
+        if (resultsList) {
+            const rows = Array.isArray(data.results) ? data.results : [];
+            resultsList.innerHTML =
+                rows.map(renderBulkEmailResultRow).join("") ||
+                `<div class="bulk-email-result-row"><span>No results returned.</span></div>`;
+        }
+
+        // Refresh so emails_sent counts and any Do Not Contact
+        // state show up on the cards immediately.
+        await loadTalentPool();
+
+    } catch (error) {
+
+        console.error("Bulk email send error:", error);
+
+        if (title) {
+            title.textContent = "Bulk Email Send Failed";
+        }
+
+        if (subtitle) {
+            subtitle.textContent = "";
+        }
+
+        if (resultsList) {
+            resultsList.innerHTML = `
+                <div class="bulk-email-result-row">
+                    <span>${escapeHtml(error.message || "Something went wrong.")}</span>
+                </div>
+            `;
+        }
+
+    } finally {
+
+        if (sendButton) {
+            sendButton.disabled = selectedCandidateIds.size === 0;
+            sendButton.textContent = "✉ Send Bulk Emails";
+        }
+    }
+}
+
+
+/* ---------------------------------------------------------
    Start Talent Pool
 --------------------------------------------------------- */
 
@@ -1334,6 +1621,44 @@ document.addEventListener(
                 "click",
                 generateOutreachForSelected
             );
+        }
+
+
+        const sendEmailsButton =
+            document.getElementById("sendBulkEmailsButton");
+
+        if (sendEmailsButton) {
+
+            sendEmailsButton.addEventListener(
+                "click",
+                sendBulkEmails
+            );
+        }
+
+
+        const closeModalButton =
+            document.getElementById("closeBulkEmailModal");
+
+        if (closeModalButton) {
+
+            closeModalButton.addEventListener(
+                "click",
+                closeBulkEmailModal
+            );
+        }
+
+
+        const modalBackdrop =
+            document.getElementById("bulkEmailModalBackdrop");
+
+        if (modalBackdrop) {
+
+            modalBackdrop.addEventListener("click", event => {
+
+                if (event.target === modalBackdrop) {
+                    closeBulkEmailModal();
+                }
+            });
         }
 
     }
