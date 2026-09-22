@@ -156,8 +156,111 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const results = document.getElementById("results");
     const loading = document.getElementById("loading");
+    const loadingTitle = document.getElementById("loadingTitle");
+    const loadingSubtitle = document.getElementById("loadingSubtitle");
     const resultCount = document.getElementById("resultCount");
     const searchStatus = document.getElementById("searchStatus");
+
+    const linkedinSource = document.getElementById("linkedinSource");
+    const publicWebSource = document.getElementById("publicWebSource");
+    const otherSource = document.getElementById("otherSource");
+
+    /* =====================================================
+       SKILL MULTISELECT (Technical + Soft, chip-based)
+    ===================================================== */
+
+    const selectedSkills = new Set();
+
+    function getActiveSources() {
+
+        const active = [];
+
+        if (linkedinSource && linkedinSource.checked) {
+            active.push({ id: "linkedin", label: "LinkedIn" });
+        }
+
+        if (publicWebSource && publicWebSource.checked) {
+            active.push({ id: "public_web", label: "Public Web" });
+        }
+
+        if (otherSource && otherSource.checked) {
+            active.push({ id: "other", label: "Other" });
+        }
+
+        return active;
+    }
+
+    function describeActiveSources() {
+
+        const active = getActiveSources();
+
+        if (!active.length) {
+            return "Searching...";
+        }
+
+        return `Searching ${active.map(s => s.label).join(" + ")}...`;
+    }
+
+    document.querySelectorAll(".skill-chip").forEach(chip => {
+
+        chip.addEventListener("click", () => {
+
+            const value = chip.dataset.skill;
+
+            if (!value) {
+                return;
+            }
+
+            if (selectedSkills.has(value)) {
+                selectedSkills.delete(value);
+                chip.classList.remove("selected");
+            } else {
+                selectedSkills.add(value);
+                chip.classList.add("selected");
+            }
+
+            if (skillFilter) {
+                const first = selectedSkills.values().next().value;
+                skillFilter.value = first || "";
+            }
+
+            updateSkillSummary();
+        });
+    });
+
+    const skillSummary = document.getElementById("skillSummary");
+
+    function updateSkillSummary() {
+
+        if (!skillSummary) {
+            return;
+        }
+
+        if (!selectedSkills.size) {
+            skillSummary.textContent = "No skills selected";
+            return;
+        }
+
+        skillSummary.textContent =
+            Array.from(selectedSkills).join(", ");
+    }
+
+    function selectSkillChip(value) {
+
+        if (!value) {
+            return;
+        }
+
+        const chip = document.querySelector(
+            `.skill-chip[data-skill="${CSS.escape(value)}"]`
+        );
+
+        if (chip && !selectedSkills.has(value)) {
+            selectedSkills.add(value);
+            chip.classList.add("selected");
+            updateSkillSummary();
+        }
+    }
 
 
     /* =====================================================
@@ -483,6 +586,123 @@ document.addEventListener("DOMContentLoaded", () => {
             "Singapore": [
                 "Singapore"
             ]
+        },
+
+        "Germany": {
+
+            "Bavaria": [
+                "Munich",
+                "Nuremberg"
+            ],
+
+            "Berlin": [
+                "Berlin"
+            ],
+
+            "Hesse": [
+                "Frankfurt"
+            ]
+        },
+
+        "France": {
+
+            "Ile-de-France": [
+                "Paris"
+            ],
+
+            "Auvergne-Rhone-Alpes": [
+                "Lyon",
+                "Grenoble"
+            ]
+        },
+
+        "Netherlands": {
+
+            "North Holland": [
+                "Amsterdam",
+                "Haarlem"
+            ],
+
+            "South Holland": [
+                "Rotterdam",
+                "The Hague"
+            ]
+        },
+
+        "Ireland": {
+
+            "Leinster": [
+                "Dublin"
+            ],
+
+            "Munster": [
+                "Cork"
+            ]
+        },
+
+        "New Zealand": {
+
+            "Auckland": [
+                "Auckland"
+            ],
+
+            "Wellington": [
+                "Wellington"
+            ]
+        },
+
+        "Saudi Arabia": {
+
+            "Riyadh": [
+                "Riyadh"
+            ],
+
+            "Makkah": [
+                "Jeddah"
+            ]
+        },
+
+        "Qatar": {
+
+            "Doha": [
+                "Doha"
+            ]
+        },
+
+        "Malaysia": {
+
+            "Kuala Lumpur": [
+                "Kuala Lumpur"
+            ],
+
+            "Selangor": [
+                "Petaling Jaya",
+                "Shah Alam"
+            ]
+        },
+
+        "South Africa": {
+
+            "Gauteng": [
+                "Johannesburg",
+                "Pretoria"
+            ],
+
+            "Western Cape": [
+                "Cape Town"
+            ]
+        },
+
+        "Philippines": {
+
+            "Metro Manila": [
+                "Manila",
+                "Quezon City"
+            ],
+
+            "Cebu": [
+                "Cebu City"
+            ]
         }
     };
 
@@ -678,6 +898,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (skillFilter) {
                     skillFilter.value = skill;
                 }
+
+                selectSkillChip(skill);
             }
 
             performSearch();
@@ -752,6 +974,10 @@ document.addEventListener("DOMContentLoaded", () => {
             ? skillFilter.value
             : "";
 
+        const skillsToSend = selectedSkills.size
+            ? Array.from(selectedSkills)
+            : (skill ? [skill] : []);
+
         const country = regionFilter
             ? regionFilter.value
             : "";
@@ -769,7 +995,7 @@ document.addEventListener("DOMContentLoaded", () => {
             : "";
 
 
-        if (!query && !role && !skill) {
+        if (!query && !role && !skillsToSend.length) {
 
             searchInput.focus();
 
@@ -820,9 +1046,21 @@ document.addEventListener("DOMContentLoaded", () => {
             resultCount.textContent = "0";
         }
 
+        const activeSources = getActiveSources();
+
+        if (loadingTitle) {
+            loadingTitle.textContent = describeActiveSources();
+        }
+
+        if (loadingSubtitle) {
+            loadingSubtitle.textContent = activeSources.length
+                ? `Getting live candidate profiles from ${activeSources.map(s => s.label).join(" and ")}.`
+                : "Finding relevant candidate profiles.";
+        }
+
         if (searchStatus) {
             searchStatus.textContent =
-                "Searching live sources...";
+                describeActiveSources();
         }
 
         if (searchButton) {
@@ -860,15 +1098,18 @@ document.addEventListener("DOMContentLoaded", () => {
                             role || query,
 
                         skills:
-                            skill
-                                ? [skill]
-                                : [],
+                            skillsToSend,
 
                         location:
                             location,
 
                         experience:
-                            experience
+                            experience,
+
+                        sources:
+                            activeSources.length
+                                ? activeSources.map(s => s.id)
+                                : ["linkedin", "public_web"]
                     })
                 }
             );
@@ -1031,6 +1272,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     candidate.url ||
                     "#";
 
+                const sourceLabel =
+                    candidate.source ||
+                    (url.toLowerCase().includes("linkedin.com")
+                        ? "LinkedIn"
+                        : "Public Web");
 
                 return `
 
@@ -1088,7 +1334,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 </div>
 
                                 <div class="source">
-                                    TalentReach
+                                    ${sourceLabel === "LinkedIn" ? "🔗" : "⌘"} ${escapeHTML(sourceLabel)}
                                 </div>
 
                             </div>
