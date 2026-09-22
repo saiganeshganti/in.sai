@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -344,7 +343,7 @@ app = FastAPI(
 # =========================================================
 # The browser error "TypeError: Failed to fetch" can happen before FastAPI
 # receives the request when the frontend origin is not allowed by CORS.
-# Keep the deployed Netlify frontend and common local development origins
+# Keep the deployed frontend(s) and common local development origins
 # explicitly allowed. An optional FRONTEND_URL can also be added to .env.
 
 CONFIGURED_FRONTEND_URL = os.getenv(
@@ -354,6 +353,7 @@ CONFIGURED_FRONTEND_URL = os.getenv(
 
 ALLOWED_ORIGINS = {
     "https://insaiairecruiter.netlify.app",
+    "https://in-sai.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:5500",
@@ -370,6 +370,10 @@ if CONFIGURED_FRONTEND_URL:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=sorted(ALLOWED_ORIGINS),
+    # If Vercel preview-deploy URLs (e.g. in-sai-git-branch-you.vercel.app)
+    # also need to reach this API, uncomment the line below instead of
+    # relying only on the exact-match list above:
+    # allow_origin_regex=r"https://in-sai.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -490,12 +494,17 @@ class EmailGenerationRequest(BaseModel):
 # =========================================================
 # HOME PAGE
 # =========================================================
+# NOTE: This backend no longer serves the frontend HTML. The frontend is
+# deployed separately (Vercel). These routes previously used FileResponse
+# on relative paths pointing at a templates/ directory that isn't deployed
+# on Render, which crashed with a 500 on every request -- including
+# Render's health check ping to "/", which likely caused the service to
+# be marked unhealthy and restarted intermittently. They now return plain
+# JSON so they can never crash the process.
 
 @app.get("/")
 def home():
-    return FileResponse(
-        "templates/index.html"
-    )
+    return {"status": "ok", "service": "In SAI AI Recruiter API"}
 
 
 # =========================================================
@@ -504,9 +513,7 @@ def home():
 
 @app.get("/talent-pool")
 def talent_pool_page():
-    return FileResponse(
-        "templates/talent_pool.html"
-    )
+    return {"status": "ok", "message": "Use the frontend app for this page."}
 
 
 # =========================================================
@@ -515,9 +522,7 @@ def talent_pool_page():
 
 @app.get("/outreach")
 def outreach_page():
-    return FileResponse(
-        "templates/outreach.html"
-    )
+    return {"status": "ok", "message": "Use the frontend app for this page."}
 
 
 # =========================================================
@@ -1441,7 +1446,7 @@ def github_lookup(request: GitHubLookupRequest):
       1. A GitHub username already visible in the candidate's known links/text.
       2. A GitHub username search by name, narrowed by location/company
          when available, auto-confirming only a clear single best match.
-    Never invents a profile — returns 'not_found' when nothing reliable exists.
+    Never invents a profile -- returns 'not_found' when nothing reliable exists.
     """
 
     if not GITHUB_TOKEN:
@@ -2180,8 +2185,8 @@ SUBJECT:
 Create a natural, professional subject specifically for the searched position.
 It should contain "{target_role}".
 Examples of acceptable structure:
-- "{target_role} Position – Your Skills Caught Our Attention"
-- "{target_role} Opportunity – Your Background Looks Relevant"
+- "{target_role} Position - Your Skills Caught Our Attention"
+- "{target_role} Opportunity - Your Background Looks Relevant"
 These are examples only. Create the best natural subject from the candidate's actual information.
 
 BODY:
@@ -2336,7 +2341,7 @@ Return exactly:
 
         if target_role.lower() not in subject.lower():
             subject = (
-                f"{target_role} Position – "
+                f"{target_role} Position - "
                 f"Your Background Caught Our Attention"
             )
 
@@ -2449,4 +2454,3 @@ Return exactly:
                 "Check the terminal for the exact Gemini error."
             )
         )
-
