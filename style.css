@@ -1555,6 +1555,152 @@ main {
 
 
 /* =========================================================
+   SKILL MULTISELECT (Technical + Soft)
+========================================================= */
+
+.filter-skills {
+    grid-column:
+        1 / -1;
+}
+
+.filter-skills label {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        10px;
+}
+
+.skill-summary {
+    color:
+        var(--primary-light);
+
+    font-size:
+        9px;
+
+    font-weight:
+        500;
+
+    text-transform:
+        none;
+
+    letter-spacing:
+        normal;
+}
+
+.skill-picker {
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        12px;
+
+    padding:
+        13px 14px;
+
+    border:
+        1px solid #443036;
+
+    border-radius:
+        10px;
+
+    background:
+        #211117;
+}
+
+.skill-group-label {
+    color:
+        #938187;
+
+    font-size:
+        9px;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        0.6px;
+
+    text-transform:
+        uppercase;
+
+    margin-bottom:
+        7px;
+}
+
+.skill-chip-row {
+    display:
+        flex;
+
+    flex-wrap:
+        wrap;
+
+    gap:
+        7px;
+}
+
+.skill-chip {
+    padding:
+        6px 12px;
+
+    border-radius:
+        999px;
+
+    border:
+        1px solid #443036;
+
+    background:
+        rgba(255, 255, 255, 0.02);
+
+    color:
+        #c7b7ba;
+
+    font-size:
+        10px;
+
+    font-weight:
+        600;
+
+    cursor:
+        pointer;
+
+    transition:
+        0.2s ease;
+}
+
+.skill-chip:hover {
+    border-color:
+        rgba(192, 74, 91, 0.45);
+
+    background:
+        rgba(155, 38, 56, 0.08);
+
+    color:
+        #eadfe1;
+}
+
+.skill-chip.selected {
+    background:
+        linear-gradient(135deg, var(--primary), var(--wine));
+
+    border-color:
+        var(--primary-light);
+
+    color:
+        #fff8f8;
+}
+
+
+/* =========================================================
    LOCATION NOTE
 ========================================================= */
 
