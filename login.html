@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Sign In — In SAI</title>
+
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
+
+    <style>
+
+        body {
+            cursor: default;
+        }
+
+        .auth-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 32px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .auth-card h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+
+        .auth-card p.subtitle {
+            margin: 0 0 26px;
+            font-size: 13px;
+            opacity: 0.65;
+        }
+
+        .auth-field {
+            margin-bottom: 16px;
+        }
+
+        .auth-field label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .auth-field input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 11px 13px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.035);
+            color: inherit;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            cursor: text;
+        }
+
+        .auth-field input:focus {
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+
+        .auth-submit {
+            width: 100%;
+            padding: 13px 18px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .auth-submit:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .auth-toggle {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 13px;
+            opacity: 0.75;
+        }
+
+        .auth-toggle button {
+            background: none;
+            border: none;
+            text-decoration: underline;
+            cursor: pointer;
+            font: inherit;
+            color: inherit;
+            padding: 0;
+        }
+
+        .auth-status {
+            margin-top: 14px;
+            font-size: 12px;
+            min-height: 16px;
+        }
+
+        .auth-status.error {
+            color: #e0838a;
+        }
+
+        .auth-status.success {
+            color: #7fd99a;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <div class="background">
+        <div class="orb orb-one"></div>
+        <div class="orb orb-two"></div>
+        <div class="grid"></div>
+    </div>
+
+
+    <div class="auth-wrapper">
+
+        <div class="auth-card">
+
+            <h1 id="authTitle">Welcome back</h1>
+
+            <p class="subtitle" id="authSubtitle">
+                Sign in to your In SAI recruiter account.
+            </p>
+
+
+            <div class="auth-field" id="nameFieldWrapper" style="display:none;">
+                <label for="nameInput">Your name</label>
+                <input id="nameInput" type="text" placeholder="Jane Recruiter">
+            </div>
+
+
+            <div class="auth-field">
+                <label for="emailInput">Email</label>
+                <input id="emailInput" type="email" placeholder="you@company.com">
+            </div>
+
+
+            <div class="auth-field">
+                <label for="passwordInput">Password</label>
+                <input id="passwordInput" type="password" placeholder="At least 8 characters">
+            </div>
+
+
+            <button type="button" class="auth-submit view-button" id="authSubmitButton">
+                Sign In
+            </button>
+
+
+            <div class="auth-status" id="authStatus"></div>
+
+
+            <div class="auth-toggle">
+
+                <span id="authToggleText">Don't have an account?</span>
+
+                <button type="button" id="authToggleButton">
+                    Create one
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        const API_BASE_URL = "https://in-sai.onrender.com";
+        const AUTH_TOKEN_KEY = "insai_auth_token";
+
+        let mode = "login"; // or "register"
+
+        const authTitle = document.getElementById("authTitle");
+        const authSubtitle = document.getElementById("authSubtitle");
+        const nameFieldWrapper = document.getElementById("nameFieldWrapper");
+        const nameInput = document.getElementById("nameInput");
+        const emailInput = document.getElementById("emailInput");
+        const passwordInput = document.getElementById("passwordInput");
+        const submitButton = document.getElementById("authSubmitButton");
+        const statusEl = document.getElementById("authStatus");
+        const toggleText = document.getElementById("authToggleText");
+        const toggleButton = document.getElementById("authToggleButton");
+
+        // If already logged in, skip straight to the app.
+        if (localStorage.getItem(AUTH_TOKEN_KEY)) {
+            window.location.href = "/talent-pool.html";
+        }
+
+        function setMode(newMode) {
+
+            mode = newMode;
+            statusEl.textContent = "";
+            statusEl.className = "auth-status";
+
+            if (mode === "login") {
+
+                authTitle.textContent = "Welcome back";
+                authSubtitle.textContent = "Sign in to your In SAI recruiter account.";
+                nameFieldWrapper.style.display = "none";
+                submitButton.textContent = "Sign In";
+                toggleText.textContent = "Don't have an account?";
+                toggleButton.textContent = "Create one";
+
+            } else {
+
+                authTitle.textContent = "Create your account";
+                authSubtitle.textContent = "Each recruiter gets their own login and their own sending email.";
+                nameFieldWrapper.style.display = "block";
+                submitButton.textContent = "Create Account";
+                toggleText.textContent = "Already have an account?";
+                toggleButton.textContent = "Sign in";
+            }
+        }
+
+        toggleButton.addEventListener("click", () => {
+            setMode(mode === "login" ? "register" : "login");
+        });
+
+        async function submitAuth() {
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const name = nameInput.value.trim();
+
+            if (!email || !password) {
+                statusEl.textContent = "Please enter your email and password.";
+                statusEl.className = "auth-status error";
+                return;
+            }
+
+            if (mode === "register" && !name) {
+                statusEl.textContent = "Please enter your name.";
+                statusEl.className = "auth-status error";
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.textContent = mode === "login" ? "Signing in..." : "Creating account...";
+            statusEl.textContent = "";
+            statusEl.className = "auth-status";
+
+            try {
+
+                const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
+
+                const payload = mode === "login"
+                    ? { email, password }
+                    : { name, email, password };
+
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.status !== "success") {
+                    throw new Error(data.message || "Something went wrong.");
+                }
+
+                localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+
+                statusEl.textContent = "✓ Success — redirecting...";
+                statusEl.className = "auth-status success";
+
+                window.location.href = "/talent-pool.html";
+
+            } catch (error) {
+
+                console.error("Auth error:", error);
+                statusEl.textContent = error.message || "Something went wrong.";
+                statusEl.className = "auth-status error";
+
+            } finally {
+
+                submitButton.disabled = false;
+                submitButton.textContent = mode === "login" ? "Sign In" : "Create Account";
+            }
+        }
+
+        submitButton.addEventListener("click", submitAuth);
+
+        [emailInput, passwordInput, nameInput].forEach(input => {
+            input.addEventListener("keydown", event => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    submitAuth();
+                }
+            });
+        });
+
+        setMode("login");
+
+    </script>
+
+
+</body>
+
+</html>
