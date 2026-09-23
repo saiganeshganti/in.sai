@@ -848,7 +848,7 @@
 
 
             <a
-                href="#"
+                href="/talent-pool.html"
                 id="talentPoolNav"
             >
                 Talent Pool
@@ -856,7 +856,7 @@
 
 
             <a
-                href="#"
+                href="/outreach.html"
                 id="outreachNav"
             >
                 Outreach
@@ -2041,6 +2041,9 @@
 
             /* =================================================
                SEARCH NAVIGATION
+               (Talent Pool / Outreach now use real links to
+               /talent-pool.html and /outreach.html instead of
+               the old in-page sections below.)
             ================================================== */
 
             searchNav.addEventListener(
@@ -2050,40 +2053,6 @@
                     event.preventDefault();
 
                     showPage("search");
-
-                }
-            );
-
-
-
-            /* =================================================
-               TALENT POOL NAVIGATION
-            ================================================== */
-
-            talentPoolNav.addEventListener(
-                "click",
-                function (event) {
-
-                    event.preventDefault();
-
-                    showPage("talent-pool");
-
-                }
-            );
-
-
-
-            /* =================================================
-               OUTREACH NAVIGATION
-            ================================================== */
-
-            outreachNav.addEventListener(
-                "click",
-                function (event) {
-
-                    event.preventDefault();
-
-                    showPage("outreach");
 
                 }
             );
