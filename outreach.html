@@ -7,113 +7,80 @@
 
     <title>In SAI AI | Candidate Outreach</title>
 
+    <link rel="stylesheet" href="/style.css">
+
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, Helvetica, sans-serif;
+        /* =====================================================
+           OUTREACH PAGE — DARK THEME (matches Talent Pool)
+        ====================================================== */
+
+        :root {
+            --outreach-accent: #d6486f;
         }
 
-        body {
-            background: #f5f7fb;
-            color: #1f2937;
+        .outreach-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px 80px;
         }
 
-        .header {
-            background: #ffffff;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 18px 35px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 22px;
-            font-weight: 700;
-            color: #2563eb;
-        }
-
-        .back-btn {
-            text-decoration: none;
-            color: #374151;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .back-btn:hover {
-            color: #2563eb;
-        }
-
-        .container {
-            max-width: 1100px;
-            margin: 35px auto;
-            padding: 0 20px;
-        }
-
-        .page-title {
-            margin-bottom: 25px;
-        }
-
-        .page-title h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-            color: #111827;
-        }
-
-        .page-title p {
-            color: #6b7280;
-            font-size: 15px;
-        }
-
-        .grid {
+        .outreach-grid {
             display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 25px;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
             align-items: start;
+            margin-top: 30px;
         }
 
-        .card {
-            background: #ffffff;
-            border-radius: 12px;
+        .outreach-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
             padding: 24px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
-        .card h2 {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #111827;
+        .outreach-card h2 {
+            font-size: 16px;
+            margin-bottom: 18px;
+            color: #ffffff;
+            letter-spacing: 0.02em;
         }
 
         label {
             display: block;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
-            margin-bottom: 7px;
-            color: #374151;
+            margin-bottom: 6px;
+            color: rgba(255, 255, 255, 0.65);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         select,
         input,
         textarea {
             width: 100%;
-            border: 1px solid #d1d5db;
-            border-radius: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
             padding: 11px 12px;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
             font-size: 14px;
             outline: none;
-            background: #ffffff;
+            background: rgba(255, 255, 255, 0.03);
+            color: #ffffff;
+            font-family: inherit;
+        }
+
+        select option {
+            background: #1a1218;
+            color: #ffffff;
         }
 
         select:focus,
         input:focus,
         textarea:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+            border-color: var(--outreach-accent);
+            box-shadow: 0 0 0 3px rgba(214, 72, 111, 0.15);
         }
 
         textarea {
@@ -123,38 +90,42 @@
         }
 
         .candidate-info {
-            background: #f8fafc;
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
-            border: 1px solid #eef2f7;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .candidate-name {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 700;
             margin-bottom: 7px;
-            color: #111827;
+            color: #ffffff;
         }
 
         .candidate-detail {
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.6);
             font-size: 13px;
             margin-top: 5px;
             line-height: 1.5;
         }
 
         .candidate-email {
-            color: #2563eb;
+            color: var(--outreach-accent);
             font-weight: 600;
+        }
+
+        .candidate-email.email-override-active {
+            color: #7fd99a;
         }
 
         .generate-btn {
             width: 100%;
             border: none;
-            border-radius: 7px;
+            border-radius: 8px;
             padding: 13px;
-            background: #2563eb;
+            background: var(--outreach-accent);
             color: #ffffff;
             font-size: 14px;
             font-weight: 700;
@@ -163,11 +134,12 @@
         }
 
         .generate-btn:hover:not(:disabled) {
-            background: #1d4ed8;
+            background: #c23d61;
         }
 
         .generate-btn:disabled {
-            background: #9ca3af;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.4);
             cursor: not-allowed;
         }
 
@@ -181,53 +153,45 @@
         .copy-btn,
         .gmail-btn,
         .draft-btn {
-            border: 1px solid #d1d5db;
-            background: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.03);
+            color: #ffffff;
             padding: 10px 15px;
-            border-radius: 7px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             font-size: 13px;
             transition: 0.2s ease;
         }
 
-        .copy-btn:hover:not(:disabled) {
-            background: #f3f4f6;
+        .copy-btn:hover:not(:disabled),
+        .draft-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .gmail-btn {
-            background: #ea4335;
-            color: #ffffff;
-            border-color: #ea4335;
+            background: #c8394f;
+            border-color: #c8394f;
         }
 
         .gmail-btn:hover:not(:disabled) {
-            background: #d93025;
-            border-color: #d93025;
-        }
-
-        .draft-btn {
-            background: #f8fafc;
-            color: #374151;
-        }
-
-        .draft-btn:hover:not(:disabled) {
-            background: #e5e7eb;
+            background: #b02e42;
+            border-color: #b02e42;
         }
 
         .copy-btn:disabled,
         .gmail-btn:disabled,
         .draft-btn:disabled {
-            background: #e5e7eb;
-            color: #9ca3af;
-            border-color: #e5e7eb;
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.08);
             cursor: not-allowed;
         }
 
         .status {
             margin-top: 15px;
-            padding: 10px;
-            border-radius: 7px;
+            padding: 10px 12px;
+            border-radius: 8px;
             display: none;
             font-size: 13px;
             line-height: 1.5;
@@ -235,24 +199,24 @@
 
         .status.success {
             display: block;
-            background: #ecfdf5;
-            color: #047857;
+            background: rgba(127, 217, 154, 0.12);
+            color: #7fd99a;
         }
 
         .status.error {
             display: block;
-            background: #fef2f2;
-            color: #b91c1c;
+            background: rgba(224, 131, 138, 0.12);
+            color: #e0838a;
         }
 
         .status.info {
             display: block;
-            background: #eff6ff;
-            color: #1d4ed8;
+            background: rgba(120, 170, 255, 0.12);
+            color: #9db8f5;
         }
 
         .empty {
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.5);
             font-size: 14px;
             padding: 20px 0;
             text-align: center;
@@ -261,25 +225,25 @@
         .email-help {
             margin-top: 14px;
             padding: 12px;
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 8px;
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.55);
             font-size: 12px;
             line-height: 1.5;
-            border: 1px solid #e5e7eb;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .email-help strong {
-            color: #374151;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .generated-indicator {
             display: none;
             margin-bottom: 15px;
             padding: 9px 12px;
-            border-radius: 7px;
-            background: #ecfdf5;
-            color: #047857;
+            border-radius: 8px;
+            background: rgba(127, 217, 154, 0.12);
+            color: #7fd99a;
             font-size: 12px;
             font-weight: 600;
         }
@@ -288,14 +252,47 @@
             display: block;
         }
 
+        /* =====================================================
+           MANUAL EMAIL ENTRY (candidate has no email on file)
+        ====================================================== */
+
+        .manual-email-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .manual-email-row input {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .manual-email-row button {
+            border: 1px solid var(--outreach-accent);
+            background: rgba(214, 72, 111, 0.12);
+            color: var(--outreach-accent);
+            border-radius: 8px;
+            padding: 0 14px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .manual-email-row button:hover {
+            background: rgba(214, 72, 111, 0.22);
+        }
+
+        .manual-email-note {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 6px;
+        }
+
         @media (max-width: 800px) {
 
-            .grid {
+            .outreach-grid {
                 grid-template-columns: 1fr;
-            }
-
-            .header {
-                padding: 15px 20px;
             }
 
             .actions {
@@ -315,7 +312,7 @@
         ====================================================== */
 
         .bulk-queue-subtitle {
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.55);
             font-size: 13px;
             margin-bottom: 18px;
         }
@@ -337,7 +334,7 @@
         .bulk-queue-progress {
             margin-top: 12px;
             font-size: 13px;
-            color: #2563eb;
+            color: var(--outreach-accent);
             font-weight: 600;
             min-height: 18px;
         }
@@ -349,10 +346,10 @@
         }
 
         .bulk-queue-item {
-            border: 1px solid #e5e7eb;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             padding: 16px;
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .bulk-queue-item-header {
@@ -365,24 +362,24 @@
 
         .bulk-queue-item-name {
             font-weight: 700;
-            color: #111827;
+            color: #ffffff;
         }
 
         .bulk-queue-item-status {
             font-size: 12px;
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.55);
         }
 
         .bulk-queue-item-subject {
             font-weight: 600;
             font-size: 13px;
             margin-bottom: 6px;
-            color: #111827;
+            color: #ffffff;
         }
 
         .bulk-queue-item-body {
             font-size: 13px;
-            color: #374151;
+            color: rgba(255, 255, 255, 0.7);
             white-space: pre-wrap;
             line-height: 1.5;
             max-height: 160px;
@@ -392,7 +389,7 @@
 
         .bulk-queue-item-error {
             font-size: 13px;
-            color: #b91c1c;
+            color: #e0838a;
         }
 
         .bulk-queue-item-actions {
@@ -402,8 +399,9 @@
         }
 
         .bulk-queue-item-actions button {
-            border: 1px solid #d1d5db;
-            background: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.03);
+            color: #ffffff;
             padding: 7px 12px;
             border-radius: 6px;
             cursor: pointer;
@@ -412,7 +410,7 @@
         }
 
         .bulk-queue-item-actions button:hover:not(:disabled) {
-            background: #f3f4f6;
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .bulk-queue-item-actions button:disabled {
@@ -433,40 +431,81 @@
 
 <body>
 
-<header class="header">
+<!-- =====================================================
+     BACKGROUND
+====================================================== -->
+<div class="background">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="grid"></div>
+</div>
+
+<!-- =====================================================
+     NAVIGATION
+====================================================== -->
+<header class="navbar">
 
     <div class="logo">
-        In SAI AI
+        <div class="logo-icon">
+            ✦
+        </div>
+        <div>
+            <div class="logo-name">
+                In SAI
+            </div>
+            <div class="logo-subtitle">
+                AI RECRUITER
+            </div>
+        </div>
     </div>
 
-    <a href="/talent-pool" class="back-btn">
-        ← Back to Talent Pool
-    </a>
+    <nav>
+        <a href="/">
+            Search
+        </a>
+        <a href="/talent-pool.html">
+            Talent Pool
+        </a>
+        <a class="active" href="/outreach.html">
+            Outreach
+        </a>
+    </nav>
+
+    <div class="nav-status" style="display:flex; align-items:center; gap:12px;">
+        <a href="/talent-pool.html" class="view-button" style="padding:6px 12px; font-size:11px;">
+            ← Back to Talent Pool
+        </a>
+    </div>
 
 </header>
 
 
-<main class="container">
+<main class="outreach-main">
 
-    <div class="page-title">
+    <section class="hero">
+
+        <div class="eyebrow">
+            ✦ AI OUTREACH
+        </div>
 
         <h1>
-            AI-Powered Candidate Outreach
+            AI-Powered
+            <span>Candidate Outreach.</span>
         </h1>
 
-        <p>
+        <p class="hero-text">
             Create professional, personalized recruitment emails
             for candidates in your Talent Pool.
         </p>
 
-    </div>
+    </section>
 
 
     <!-- ==========================================
          BULK OUTREACH QUEUE (from Talent Pool)
     =========================================== -->
 
-    <div id="bulkQueueCard" class="card bulk-queue-card" style="display:none; margin-bottom:25px;">
+    <div id="bulkQueueCard" class="outreach-card bulk-queue-card" style="display:none; margin-bottom:25px;">
 
         <h2>
             Bulk Outreach Queue
@@ -521,13 +560,13 @@
     </div>
 
 
-    <div class="grid">
+    <div class="outreach-grid">
 
         <!-- ==========================================
              LEFT SIDE
         =========================================== -->
 
-        <div class="card">
+        <div class="outreach-card">
 
             <h2>
                 Candidate
@@ -625,7 +664,7 @@
              RIGHT SIDE
         =========================================== -->
 
-        <div class="card">
+        <div class="outreach-card">
 
             <h2>
                 Generated Email
@@ -718,6 +757,16 @@
 </main>
 
 
+<footer>
+    <div>
+        © 2026 In SAI AI
+    </div>
+    <div>
+        Intelligent recruitment • Candidate management • Outreach
+    </div>
+</footer>
+
+
 <script>
 
     const API_BASE_URL = "https://in-sai.onrender.com";
@@ -729,6 +778,11 @@
     let candidates = [];
     let selectedCandidate = null;
     let emailGenerated = false;
+
+    // Manually-entered email for the currently selected candidate,
+    // used only when the candidate has no email on file. This is
+    // session-only (not saved back to the Talent Pool / database).
+    let manualEmailOverride = "";
 
 
     // =====================================================
@@ -997,7 +1051,23 @@
     }
 
 
+    // =====================================================
+    // EMAIL VALIDATION HELPER
+    // =====================================================
+
+    function isValidEmail(value) {
+
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+            String(value || "").trim()
+        );
+    }
+
+
     function renderQueueItemResult(item, queuedCandidate, subject, body) {
+
+        const hasEmail =
+            !!(queuedCandidate.email &&
+                String(queuedCandidate.email).trim());
 
         item.innerHTML = `
             <div class="bulk-queue-item-header">
@@ -1012,14 +1082,39 @@
                 ${escapeHtml(subject)}
             </div>
             <div class="bulk-queue-item-body">${escapeHtml(body)}</div>
+            ${hasEmail ? "" : `
+                <div class="manual-email-row" style="margin-bottom:10px;">
+                    <input
+                        type="email"
+                        class="queue-manual-email-input"
+                        placeholder="Enter candidate's email address"
+                    >
+                    <button type="button" class="queue-use-manual-email-btn">
+                        Use this email
+                    </button>
+                </div>
+            `}
             <div class="bulk-queue-item-actions">
                 <button type="button" class="queue-copy-btn">Copy Email</button>
-                <button type="button" class="queue-gmail-btn" ${queuedCandidate.email ? "" : "disabled"}>Open in Gmail</button>
+                <button type="button" class="queue-gmail-btn" ${hasEmail ? "" : "disabled"}>Open in Gmail</button>
             </div>
         `;
 
         const copyButton = item.querySelector(".queue-copy-btn");
         const gmailButton = item.querySelector(".queue-gmail-btn");
+        const manualEmailInput = item.querySelector(".queue-manual-email-input");
+        const useManualEmailBtn = item.querySelector(".queue-use-manual-email-btn");
+
+        function getQueueItemEmail() {
+
+            if (queuedCandidate.email) {
+                return String(queuedCandidate.email).trim();
+            }
+
+            return queuedCandidate.manualEmail
+                ? String(queuedCandidate.manualEmail).trim()
+                : "";
+        }
 
         if (copyButton) {
 
@@ -1043,14 +1138,37 @@
             });
         }
 
+        if (useManualEmailBtn && manualEmailInput && gmailButton) {
+
+            useManualEmailBtn.addEventListener("click", () => {
+
+                const value = manualEmailInput.value.trim();
+
+                if (!isValidEmail(value)) {
+                    manualEmailInput.style.borderColor = "#e0838a";
+                    return;
+                }
+
+                manualEmailInput.style.borderColor = "";
+                queuedCandidate.manualEmail = value;
+                gmailButton.disabled = false;
+                useManualEmailBtn.textContent = "Saved ✓";
+            });
+
+            manualEmailInput.addEventListener("keydown", (event) => {
+
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    useManualEmailBtn.click();
+                }
+            });
+        }
+
         if (gmailButton) {
 
             gmailButton.addEventListener("click", () => {
 
-                const candidateEmail =
-                    queuedCandidate.email
-                        ? String(queuedCandidate.email).trim()
-                        : "";
+                const candidateEmail = getQueueItemEmail();
 
                 if (!candidateEmail) {
                     return;
@@ -1216,6 +1334,8 @@
 
             emailGenerated = false;
 
+            manualEmailOverride = "";
+
             disableEmailActions();
 
             generatedIndicator.classList.remove("show");
@@ -1271,9 +1391,38 @@
                 "Not specified";
 
 
-            const email =
-                selectedCandidate.email ||
-                "Email not available";
+            const hasEmail =
+                !!(selectedCandidate.email &&
+                    String(selectedCandidate.email).trim());
+
+
+            const emailSectionHtml = hasEmail
+                ? `
+                    <div class="candidate-detail candidate-email">
+                        Email:
+                        ${escapeHtml(selectedCandidate.email)}
+                    </div>
+                `
+                : `
+                    <div class="candidate-detail candidate-email" id="candidateEmailStatus">
+                        Email:
+                        <span id="candidateEmailStatusText">Not available in Talent Pool</span>
+                    </div>
+                    <div class="manual-email-row">
+                        <input
+                            type="email"
+                            id="manualEmailInput"
+                            placeholder="Enter candidate's email address"
+                        >
+                        <button type="button" id="useManualEmailBtn">
+                            Use this email
+                        </button>
+                    </div>
+                    <div class="manual-email-note">
+                        Used for Gmail actions on this page only —
+                        not saved to the Talent Pool.
+                    </div>
+                `;
 
 
             candidateInfo.innerHTML = `
@@ -1302,12 +1451,14 @@
                     ${escapeHtml(location)}
                 </div>
 
-                <div class="candidate-detail candidate-email">
-                    Email:
-                    ${escapeHtml(email)}
-                </div>
+                ${emailSectionHtml}
 
             `;
+
+
+            if (!hasEmail) {
+                attachManualEmailHandlers();
+            }
 
 
             showStatus(
@@ -1317,6 +1468,78 @@
 
         }
     );
+
+
+    // =====================================================
+    // MANUAL EMAIL ENTRY (candidate has no email on file)
+    // =====================================================
+
+    function attachManualEmailHandlers() {
+
+        const manualEmailInput =
+            document.getElementById("manualEmailInput");
+
+        const useManualEmailBtn =
+            document.getElementById("useManualEmailBtn");
+
+        if (!manualEmailInput || !useManualEmailBtn) {
+            return;
+        }
+
+        function applyManualEmail() {
+
+            const value = manualEmailInput.value.trim();
+
+            if (!isValidEmail(value)) {
+
+                showStatus(
+                    "Please enter a valid email address.",
+                    "error"
+                );
+
+                manualEmailInput.style.borderColor = "#e0838a";
+
+                return;
+            }
+
+            manualEmailInput.style.borderColor = "";
+            manualEmailOverride = value;
+
+            const statusText =
+                document.getElementById("candidateEmailStatusText");
+
+            if (statusText) {
+                statusText.textContent = manualEmailOverride;
+            }
+
+            const emailLine =
+                document.getElementById("candidateEmailStatus");
+
+            if (emailLine) {
+                emailLine.classList.add("email-override-active");
+            }
+
+            useManualEmailBtn.textContent = "Saved ✓";
+
+            showStatus(
+                "Email saved for this session. Gmail actions are now available.",
+                "success"
+            );
+        }
+
+        useManualEmailBtn.addEventListener(
+            "click",
+            applyManualEmail
+        );
+
+        manualEmailInput.addEventListener("keydown", function(event) {
+
+            if (event.key === "Enter") {
+                event.preventDefault();
+                applyManualEmail();
+            }
+        });
+    }
 
 
     // =====================================================
@@ -1615,6 +1838,23 @@
 
 
     // =====================================================
+    // EFFECTIVE CANDIDATE EMAIL
+    // (candidate's stored email, or the manually entered one)
+    // =====================================================
+
+    function getEffectiveCandidateEmail() {
+
+        if (selectedCandidate && selectedCandidate.email) {
+            return String(selectedCandidate.email).trim();
+        }
+
+        return manualEmailOverride
+            ? manualEmailOverride.trim()
+            : "";
+    }
+
+
+    // =====================================================
     // GMAIL COMPOSE
     // =====================================================
 
@@ -1632,17 +1872,13 @@
 
 
         const candidateEmail =
-            selectedCandidate.email
-                ? String(
-                    selectedCandidate.email
-                ).trim()
-                : "";
+            getEffectiveCandidateEmail();
 
 
         if (!candidateEmail) {
 
             showStatus(
-                "This candidate does not have an email address in the Talent Pool.",
+                "This candidate does not have an email address. Enter one above to continue.",
                 "error"
             );
 
