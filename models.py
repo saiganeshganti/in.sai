@@ -229,3 +229,59 @@ class Candidate(Base):
             f"finance_subcategory='{self.finance_subcategory}'"
             f")>"
         )
+
+
+# =========================================================
+# RECRUITER (LOGGED-IN USER) ACCOUNTS
+# =========================================================
+# Each recruiter using the site has their own login and their own
+# Gmail sending credentials, so bulk emails go out from the person
+# who actually clicked "Send", not one shared account.
+
+class Recruiter(Base):
+    __tablename__ = "recruiters"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    name = Column(
+        String(150),
+        nullable=False
+    )
+
+    email = Column(
+        String(150),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    # PBKDF2 password hash, stored as "salt$hash" (hex). Never the
+    # plaintext password.
+    password_hash = Column(
+        String(300),
+        nullable=False
+    )
+
+    # =========================
+    # This recruiter's own Gmail sending credentials
+    # =========================
+
+    smtp_email = Column(
+        String(150),
+        nullable=True
+    )
+
+    # The Gmail App Password, encrypted at rest (Fernet). Never
+    # stored or returned in plaintext.
+    smtp_app_password_encrypted = Column(
+        Text,
+        nullable=True
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    def __repr__(self):
+        return f"<Recruiter(id={self.id}, email='{self.email}')>"
