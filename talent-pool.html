@@ -267,16 +267,67 @@
         </nav>
 
 
-        <div class="nav-status">
+        <div class="nav-status" style="display:flex; align-items:center; gap:12px;">
 
-            <span class="status-dot"></span>
+            <span id="recruiterEmailLabel" style="font-size:12px; opacity:0.7;"></span>
 
-            AI Agent Ready
+            <button type="button" id="openSmtpSettingsButton" class="view-button" style="padding:6px 12px; font-size:11px;">
+                Email Settings
+            </button>
+
+            <button type="button" id="logoutButton" class="view-button" style="padding:6px 12px; font-size:11px;">
+                Log Out
+            </button>
 
         </div>
 
 
     </header>
+
+
+
+    <!-- =====================================================
+         SMTP / EMAIL SETTINGS MODAL
+    ====================================================== -->
+
+    <div class="bulk-email-modal-backdrop hidden" id="smtpSettingsModalBackdrop">
+
+        <div class="bulk-email-modal">
+
+            <h3>Email Settings</h3>
+
+            <p>
+                Bulk emails are sent from YOUR Gmail account, not a shared one.
+                Use a Gmail <strong>App Password</strong> here, not your normal
+                Gmail password (Google Account → Security → 2-Step Verification
+                → App Passwords).
+            </p>
+
+            <div class="outreach-field">
+                <label for="smtpEmailInput">Your Gmail address</label>
+                <input id="smtpEmailInput" type="email" placeholder="you@gmail.com">
+            </div>
+
+            <div class="outreach-field">
+                <label for="smtpAppPasswordInput">Gmail App Password</label>
+                <input id="smtpAppPasswordInput" type="password" placeholder="16-character app password">
+            </div>
+
+            <div id="smtpSettingsStatus" style="font-size:12px; opacity:0.75; min-height:16px; margin-bottom:10px;"></div>
+
+            <div class="bulk-email-modal-actions" style="justify-content:space-between;">
+                <button type="button" class="view-button" id="closeSmtpSettingsModal">
+                    Cancel
+                </button>
+
+                <button type="button" class="view-button" id="saveSmtpSettingsButton">
+                    Save
+                </button>
+            </div>
+
+        </div>
+
+    </div>
 
 
 
@@ -735,6 +786,10 @@
                         Export CSV
                     </button>
 
+                    <button type="button" class="view-button" id="exportSelectedXlsx" disabled>
+                        Export Excel
+                    </button>
+
                     <button type="button" class="view-button" id="removeSelectedCandidates" disabled>
                         Remove Selected
                     </button>
@@ -826,6 +881,13 @@
 
     </footer>
 
+
+
+    <!-- =====================================================
+         SHEETJS (client-side .xlsx export)
+    ====================================================== -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 
     <!-- =====================================================
