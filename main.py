@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -29,7 +29,8 @@ from html.parser import HTMLParser
 from sqlalchemy import text as sql_text
 
 from database import engine, SessionLocal, Base
-from models import Candidate
+from models import Candidate, Recruiter
+import auth_utils
 
 
 # =========================================================
@@ -134,41 +135,43 @@ _run_sqlite_migrations()
 # =========================================================
 # SMTP / EMAIL SENDING CONFIGURATION
 # =========================================================
-# Credentials are read from environment variables only -- never
-# hardcoded. Set these in Render: Dashboard -> your service ->
-# Environment -> Add Environment Variable.
+# Each recruiter sends from their OWN Gmail account, entered once in
+# their account settings and stored encrypted (see auth_utils.py and
+# POST /auth/smtp below). There is no shared/global sending account.
 #
-#   SMTP_EMAIL          the Gmail address emails are sent from
-#   SMTP_APP_PASSWORD   a 16-character Gmail "App Password"
-#                        (Google Account -> Security -> 2-Step
-#                        Verification -> App Passwords)
-#
-# If these are not set, /send-bulk-emails will return a clear
-# "unavailable" response instead of crashing.
+# SMTP_HOST / SMTP_PORT are still configurable via environment
+# variables in case Gmail is ever swapped for another provider, but
+# the actual "From" address and password now always come from the
+# logged-in recruiter's row in the database.
 
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")
-SMTP_APP_PASSWORD = os.getenv("SMTP_APP_PASSWORD")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
-SMTP_SENDER_NAME = os.getenv("SMTP_SENDER_NAME", "In SAI AI Recruiter")
-
-print("SMTP EMAIL CONFIGURED:", bool(SMTP_EMAIL and SMTP_APP_PASSWORD))
 
 
-def send_email_via_smtp(to_email: str, subject: str, body: str):
+def send_email_via_smtp(
+    to_email: str,
+    subject: str,
+    body: str,
+    from_email: str,
+    from_app_password: str,
+    sender_name: str = ""
+):
     """
-    Sends one plain-text email via Gmail SMTP (SSL, port 465).
-    Raises an exception on failure -- callers are expected to catch it
-    per-candidate so one bad send doesn't stop the whole batch.
+    Sends one plain-text email via SMTP (SSL) using the GIVEN sender's
+    credentials -- never a global/shared account. Raises an exception
+    on failure; callers catch it per-candidate so one bad send doesn't
+    stop the whole batch.
     """
-    if not SMTP_EMAIL or not SMTP_APP_PASSWORD:
+    if not from_email or not from_app_password:
         raise RuntimeError(
-            "Email sending is not configured. "
-            "Set SMTP_EMAIL and SMTP_APP_PASSWORD as environment variables."
+            "This recruiter has not connected a sending email yet. "
+            "Add a Gmail address and App Password in Email Settings."
         )
 
+    display_name = sender_name or from_email
+
     message = MIMEMultipart()
-    message["From"] = f"{SMTP_SENDER_NAME} <{SMTP_EMAIL}>"
+    message["From"] = f"{display_name} <{from_email}>"
     message["To"] = to_email
     message["Subject"] = subject
     message.attach(MIMEText(body, "plain"))
@@ -176,8 +179,8 @@ def send_email_via_smtp(to_email: str, subject: str, body: str):
     context = ssl.create_default_context()
 
     with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context, timeout=20) as server:
-        server.login(SMTP_EMAIL, SMTP_APP_PASSWORD)
-        server.sendmail(SMTP_EMAIL, to_email, message.as_string())
+        server.login(from_email, from_app_password)
+        server.sendmail(from_email, to_email, message.as_string())
 
 
 # =========================================================
@@ -496,6 +499,55 @@ def get_db():
 
 
 # =========================================================
+# RECRUITER AUTH MODELS
+# =========================================================
+
+class RecruiterRegister(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class RecruiterLogin(BaseModel):
+    email: str
+    password: str
+
+
+class RecruiterSMTPUpdate(BaseModel):
+    smtp_email: str
+    smtp_app_password: str
+
+
+# =========================================================
+# AUTH DEPENDENCY
+# =========================================================
+# Reads "Authorization: Bearer <token>" from the request, verifies
+# the token, and returns the matching Recruiter row. Endpoints that
+# need to know "which recruiter is doing this" depend on this.
+
+def get_current_recruiter(
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db)
+):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Not logged in.")
+
+    token = authorization.split(" ", 1)[1].strip()
+
+    recruiter_id = auth_utils.verify_session_token(token)
+
+    if not recruiter_id:
+        raise HTTPException(status_code=401, detail="Session expired or invalid. Please log in again.")
+
+    recruiter = db.query(Recruiter).filter(Recruiter.id == recruiter_id).first()
+
+    if not recruiter:
+        raise HTTPException(status_code=401, detail="Account not found.")
+
+    return recruiter
+
+
+# =========================================================
 # REQUEST MODELS
 # =========================================================
 
@@ -660,6 +712,142 @@ def health():
         "gemini_configured": bool(GEMINI_API_KEY),
         "tavily_configured": bool(TAVILY_API_KEY),
         "github_configured": bool(GITHUB_TOKEN)
+    }
+
+
+# =========================================================
+# RECRUITER REGISTRATION
+# =========================================================
+
+@app.post("/auth/register")
+def register_recruiter(
+    data: RecruiterRegister,
+    db: Session = Depends(get_db)
+):
+
+    name = data.name.strip()
+    email = data.email.strip().lower()
+    password = data.password
+
+    if not name or not email or not password:
+        return {"status": "error", "message": "Name, email, and password are required."}
+
+    if len(password) < 8:
+        return {"status": "error", "message": "Password must be at least 8 characters."}
+
+    existing = db.query(Recruiter).filter(Recruiter.email == email).first()
+
+    if existing:
+        return {"status": "error", "message": "An account with this email already exists."}
+
+    recruiter = Recruiter(
+        name=name,
+        email=email,
+        password_hash=auth_utils.hash_password(password),
+        created_at=datetime.now(timezone.utc)
+    )
+
+    db.add(recruiter)
+    db.commit()
+    db.refresh(recruiter)
+
+    token = auth_utils.create_session_token(recruiter.id)
+
+    return {
+        "status": "success",
+        "token": token,
+        "recruiter": {
+            "id": recruiter.id,
+            "name": recruiter.name,
+            "email": recruiter.email,
+            "smtp_configured": bool(recruiter.smtp_email and recruiter.smtp_app_password_encrypted)
+        }
+    }
+
+
+# =========================================================
+# RECRUITER LOGIN
+# =========================================================
+
+@app.post("/auth/login")
+def login_recruiter(
+    data: RecruiterLogin,
+    db: Session = Depends(get_db)
+):
+
+    email = data.email.strip().lower()
+
+    recruiter = db.query(Recruiter).filter(Recruiter.email == email).first()
+
+    if not recruiter or not auth_utils.verify_password(data.password, recruiter.password_hash):
+        return {"status": "error", "message": "Incorrect email or password."}
+
+    token = auth_utils.create_session_token(recruiter.id)
+
+    return {
+        "status": "success",
+        "token": token,
+        "recruiter": {
+            "id": recruiter.id,
+            "name": recruiter.name,
+            "email": recruiter.email,
+            "smtp_configured": bool(recruiter.smtp_email and recruiter.smtp_app_password_encrypted)
+        }
+    }
+
+
+# =========================================================
+# CURRENT RECRUITER
+# =========================================================
+
+@app.get("/auth/me")
+def get_me(recruiter: Recruiter = Depends(get_current_recruiter)):
+
+    return {
+        "status": "success",
+        "recruiter": {
+            "id": recruiter.id,
+            "name": recruiter.name,
+            "email": recruiter.email,
+            "smtp_email": recruiter.smtp_email,
+            "smtp_configured": bool(recruiter.smtp_email and recruiter.smtp_app_password_encrypted)
+        }
+    }
+
+
+# =========================================================
+# CONNECT / UPDATE THIS RECRUITER'S OWN SENDING EMAIL
+# =========================================================
+# The Gmail App Password is encrypted before being stored -- it is
+# never saved or returned in plaintext.
+
+@app.post("/auth/smtp")
+def update_smtp_settings(
+    data: RecruiterSMTPUpdate,
+    recruiter: Recruiter = Depends(get_current_recruiter),
+    db: Session = Depends(get_db)
+):
+
+    smtp_email = data.smtp_email.strip()
+    smtp_app_password = data.smtp_app_password.strip().replace(" ", "")
+
+    if not smtp_email or not smtp_app_password:
+        return {"status": "error", "message": "Both the Gmail address and App Password are required."}
+
+    try:
+        encrypted = auth_utils.encrypt_secret(smtp_app_password)
+    except RuntimeError as error:
+        return {"status": "error", "message": str(error)}
+
+    recruiter.smtp_email = smtp_email
+    recruiter.smtp_app_password_encrypted = encrypted
+
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": "Sending email connected.",
+        "smtp_email": recruiter.smtp_email
     }
 
 
@@ -2596,19 +2784,31 @@ Return exactly:
 @app.post("/send-bulk-emails")
 def send_bulk_emails(
     request: BulkEmailRequest,
+    recruiter: Recruiter = Depends(get_current_recruiter),
     db: Session = Depends(get_db)
 ):
 
-    if not SMTP_EMAIL or not SMTP_APP_PASSWORD:
+    if not recruiter.smtp_email or not recruiter.smtp_app_password_encrypted:
         return {
             "status": "unavailable",
             "message": (
-                "Email sending is not configured on the server. "
-                "Set SMTP_EMAIL and SMTP_APP_PASSWORD as environment "
-                "variables on Render, then redeploy."
+                "You haven't connected a sending email yet. "
+                "Go to Email Settings and add your Gmail address and App Password."
             ),
             "results": []
         }
+
+    try:
+        sender_app_password = auth_utils.decrypt_secret(recruiter.smtp_app_password_encrypted)
+    except RuntimeError as error:
+        return {
+            "status": "unavailable",
+            "message": str(error),
+            "results": []
+        }
+
+    sender_email = recruiter.smtp_email
+    sender_name = recruiter.name
 
     candidate_ids = [
         cid for cid in dict.fromkeys(request.candidate_ids)
@@ -2727,7 +2927,14 @@ def send_bulk_emails(
         # -----------------------------------------------
 
         try:
-            send_email_via_smtp(candidate.email, subject, body)
+            send_email_via_smtp(
+                to_email=candidate.email,
+                subject=subject,
+                body=body,
+                from_email=sender_email,
+                from_app_password=sender_app_password,
+                sender_name=sender_name
+            )
 
         except Exception as error:
             print("SMTP SEND ERROR for candidate", candidate_id, ":", repr(error))
