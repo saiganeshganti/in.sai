@@ -164,6 +164,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const publicWebSource = document.getElementById("publicWebSource");
     const otherSource = document.getElementById("otherSource");
 
+
+    /* =====================================================
+       LOGO CLICK — REFRESH THE APP
+    ===================================================== */
+
+    const logoHome = document.getElementById("logoHome");
+
+    if (logoHome) {
+
+        const refreshApp = () => {
+            window.location.reload();
+        };
+
+        logoHome.addEventListener("click", refreshApp);
+
+        logoHome.addEventListener("keydown", event => {
+
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                refreshApp();
+            }
+        });
+    }
+
     /* =====================================================
        SKILL MULTISELECT (Technical + Soft, chip-based)
     ===================================================== */
