@@ -5670,3 +5670,133 @@ body {
         align-items: stretch;
     }
 }
+
+/* =========================================================
+   IN SAI — READABILITY / CONTRAST PATCH
+   Brightens muted text so labels, headings and body copy
+   are clearly legible on the dark maroon background.
+   APPEND ONLY — nothing above this is changed.
+========================================================= */
+
+:root {
+    --muted: #baa7ac;
+    --muted-light: #9d8a8f;
+    --text-soft: #e3d5d8;
+}
+
+/* Small maroon "eyebrow" labels (SAVED CANDIDATES, REFINE
+   TALENT POOL, etc.) were dark red on dark maroon — brighten
+   and bump the size slightly. */
+.section-label {
+    color: #ff92a2 !important;
+    font-size: 11px !important;
+    letter-spacing: 1.6px;
+}
+
+/* Filter labels (Region, State, City, Role, ...) */
+.filter label {
+    color: #e6d7da !important;
+    font-size: 11px !important;
+}
+
+/* Filter inputs/selects — brighter text, still dark field */
+.filter select,
+.filter input {
+    color: #f5ecee !important;
+    font-size: 12px !important;
+}
+
+.filter select option {
+    color: #f5ecee !important;
+}
+
+/* "Talent Pool  4" heading — force full white */
+.results-header h2 {
+    color: #ffffff !important;
+}
+
+.results-header h2 span {
+    color: #ffd7dd !important;
+    background: rgba(155, 38, 56, 0.42) !important;
+}
+
+/* Status text next to the heading ("Loading candidates...") */
+.search-status {
+    color: #d8c6ca !important;
+}
+
+/* Hero subtitle under "Your Talent Pool." */
+.hero-text {
+    color: #cdb9bd !important;
+}
+
+/* Section intro paragraphs */
+.talent-pool-header p,
+.outreach-section > p {
+    color: #bfabb0 !important;
+}
+
+/* Empty-state / helper copy */
+.empty-state p,
+.talent-pool-empty p,
+.loading p {
+    color: #b09da2 !important;
+}
+
+.empty-state h3,
+.talent-pool-empty h2 {
+    color: #ffffff !important;
+}
+
+/* Candidate card secondary text */
+.candidate-role,
+.candidate-company,
+.candidate-location,
+.candidate-experience,
+.source {
+    color: #cdbcc0 !important;
+}
+
+.candidate-name {
+    color: #ffffff !important;
+}
+
+/* Footer */
+footer {
+    color: #ab989d !important;
+}
+
+/* View Profile / secondary buttons — brighter label text */
+.view-button {
+    color: #f0b4bd !important;
+}
+
+
+/* =========================================================
+   IN SAI — LOGO SWAP (photo logo replaces the ✦ mark)
+   The photo logo already contains the "In SAI" wordmark and
+   tagline, so it needs more horizontal room than the old
+   icon + text pairing did.
+========================================================= */
+
+.navbar .logo img {
+    width: 260px !important;
+    height: 76px !important;
+    max-height: 76px !important;
+}
+
+@media (max-width: 900px) {
+    .navbar .logo img {
+        width: 220px !important;
+        height: 64px !important;
+        max-height: 64px !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .navbar .logo img {
+        width: 170px !important;
+        height: 50px !important;
+        max-height: 50px !important;
+    }
+}
