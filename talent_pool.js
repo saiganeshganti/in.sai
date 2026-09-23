@@ -6,6 +6,79 @@ const API_BASE_URL = "https://in-sai.onrender.com";
 
 
 /* ---------------------------------------------------------
+   Auth — every recruiter must be logged in to reach this page.
+   The session token (from /auth/login or /auth/register) is
+   stored in localStorage and sent as "Authorization: Bearer ..."
+   on any request that needs to know who's asking.
+--------------------------------------------------------- */
+
+const AUTH_TOKEN_KEY = "insai_auth_token";
+
+function getAuthToken() {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+function requireAuthOrRedirect() {
+    if (!getAuthToken()) {
+        window.location.href = "/login.html";
+        return false;
+    }
+    return true;
+}
+
+function authHeaders() {
+    const token = getAuthToken();
+    return token ? { "Authorization": `Bearer ${token}` } : {};
+}
+
+function logout() {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.location.href = "/login.html";
+}
+
+
+async function loadRecruiterProfile() {
+
+    const label = document.getElementById("recruiterEmailLabel");
+
+    try {
+
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: authHeaders()
+        });
+
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+
+        const data = await response.json();
+
+        if (!response.ok || data.status !== "success") {
+            throw new Error("Could not load account.");
+        }
+
+        const recruiter = data.recruiter;
+
+        if (label) {
+            label.textContent =
+                `${recruiter.name} (${recruiter.email})` +
+                (recruiter.smtp_configured ? "" : " · Email not connected");
+        }
+
+        // Pre-fill the settings modal with the connected address (not the password).
+        const smtpEmailInput = document.getElementById("smtpEmailInput");
+        if (smtpEmailInput && recruiter.smtp_email) {
+            smtpEmailInput.value = recruiter.smtp_email;
+        }
+
+    } catch (error) {
+        console.error("Load recruiter profile error:", error);
+    }
+}
+
+
+/* ---------------------------------------------------------
    Bulk selection state
 --------------------------------------------------------- */
 
@@ -1072,6 +1145,9 @@ function updateBulkToolbar() {
     const exportButton =
         document.getElementById("exportSelectedCsv");
 
+    const exportXlsxButton =
+        document.getElementById("exportSelectedXlsx");
+
     const removeButton =
         document.getElementById("removeSelectedCandidates");
 
@@ -1093,7 +1169,7 @@ function updateBulkToolbar() {
     }
 
 
-    [exportButton, removeButton, outreachButton, sendEmailsButton].forEach(button => {
+    [exportButton, exportXlsxButton, removeButton, outreachButton, sendEmailsButton].forEach(button => {
 
         if (button) {
             button.disabled = selectedCount === 0;
@@ -1234,6 +1310,63 @@ function exportSelectedToCsv() {
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
+}
+
+
+/* ---------------------------------------------------------
+   Excel (.xlsx) export (selected candidates only)
+   Uses the SheetJS library loaded via CDN in talent_pool.html.
+--------------------------------------------------------- */
+
+function exportSelectedToXlsx() {
+
+    const selected = getSelectedCandidates();
+
+    if (!selected.length) {
+        return;
+    }
+
+    if (typeof XLSX === "undefined") {
+        alert("The Excel export library did not load. Please refresh the page and try again.");
+        return;
+    }
+
+    const rows = selected.map(candidate => {
+
+        const locationParts = [
+            candidate.city,
+            candidate.state,
+            candidate.region
+        ].filter(Boolean);
+
+        const location =
+            locationParts.length
+                ? locationParts.join(", ")
+                : (candidate.location || "");
+
+        return {
+            "Name": candidate.name || "",
+            "Role": candidate.current_role || "",
+            "Company": candidate.company || "",
+            "Experience": candidate.experience || "",
+            "Gender": candidate.gender || "",
+            "Skills": candidate.skills || "",
+            "Finance Category": candidate.finance_category || "",
+            "Specialization": candidate.finance_subcategory || "",
+            "Email": candidate.email || "",
+            "LinkedIn": candidate.linkedin_url || "",
+            "Location": location,
+            "Emails Sent": candidate.emails_sent || 0,
+            "Do Not Contact": candidate.do_not_contact ? "Yes" : "No"
+        };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Talent Pool");
+
+    XLSX.writeFile(workbook, `talent-pool-selected-${Date.now()}.xlsx`);
 }
 
 
@@ -1473,13 +1606,21 @@ async function sendBulkEmails() {
 
         const response = await fetch(`${API_BASE_URL}/send-bulk-emails`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...authHeaders()
+            },
             body: JSON.stringify({
                 candidate_ids: selected.map(c => c.id),
                 email_type: "initial_outreach",
                 tone: "professional"
             })
         });
+
+        if (response.status === 401) {
+            logout();
+            return;
+        }
 
         const data = await response.json();
 
@@ -1490,7 +1631,7 @@ async function sendBulkEmails() {
         if (data.status === "unavailable") {
 
             if (title) {
-                title.textContent = "Email Sending Not Configured";
+                title.textContent = "Email Sending Not Set Up";
             }
 
             if (subtitle) {
@@ -1501,6 +1642,11 @@ async function sendBulkEmails() {
                 resultsList.innerHTML = `
                     <div class="bulk-email-result-row">
                         <span>${escapeHtml(data.message || "Email sending is not configured.")}</span>
+                    </div>
+                    <div class="bulk-email-result-row">
+                        <button type="button" class="view-button" onclick="closeBulkEmailModal(); openSmtpSettingsModal();">
+                            Open Email Settings
+                        </button>
                     </div>
                 `;
             }
@@ -1566,12 +1712,105 @@ async function sendBulkEmails() {
 
 
 /* ---------------------------------------------------------
+   Email (SMTP) Settings modal
+--------------------------------------------------------- */
+
+function openSmtpSettingsModal() {
+    const backdrop = document.getElementById("smtpSettingsModalBackdrop");
+    if (backdrop) {
+        backdrop.classList.remove("hidden");
+    }
+}
+
+function closeSmtpSettingsModal() {
+    const backdrop = document.getElementById("smtpSettingsModalBackdrop");
+    if (backdrop) {
+        backdrop.classList.add("hidden");
+    }
+}
+
+async function saveSmtpSettings() {
+
+    const emailInput = document.getElementById("smtpEmailInput");
+    const passwordInput = document.getElementById("smtpAppPasswordInput");
+    const status = document.getElementById("smtpSettingsStatus");
+    const saveButton = document.getElementById("saveSmtpSettingsButton");
+
+    const smtpEmail = emailInput ? emailInput.value.trim() : "";
+    const smtpAppPassword = passwordInput ? passwordInput.value.trim() : "";
+
+    if (!smtpEmail || !smtpAppPassword) {
+        if (status) status.textContent = "Please enter both your Gmail address and App Password.";
+        return;
+    }
+
+    if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+    }
+
+    if (status) status.textContent = "";
+
+    try {
+
+        const response = await fetch(`${API_BASE_URL}/auth/smtp`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...authHeaders()
+            },
+            body: JSON.stringify({
+                smtp_email: smtpEmail,
+                smtp_app_password: smtpAppPassword
+            })
+        });
+
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+
+        const data = await response.json();
+
+        if (!response.ok || data.status !== "success") {
+            throw new Error(data.message || "Could not save email settings.");
+        }
+
+        if (status) status.textContent = "✓ Saved. You can close this now.";
+
+        if (passwordInput) passwordInput.value = "";
+
+        await loadRecruiterProfile();
+
+    } catch (error) {
+
+        console.error("Save SMTP settings error:", error);
+
+        if (status) status.textContent = error.message || "Something went wrong.";
+
+    } finally {
+
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = "Save";
+        }
+    }
+}
+
+
+/* ---------------------------------------------------------
    Start Talent Pool
 --------------------------------------------------------- */
 
 document.addEventListener(
     "DOMContentLoaded",
     () => {
+
+        if (!requireAuthOrRedirect()) {
+            return;
+        }
+
+        loadRecruiterProfile();
 
         loadTalentPool();
 
@@ -1659,6 +1898,80 @@ document.addEventListener(
                     closeBulkEmailModal();
                 }
             });
+        }
+
+
+        const exportXlsxButton =
+            document.getElementById("exportSelectedXlsx");
+
+        if (exportXlsxButton) {
+
+            exportXlsxButton.addEventListener(
+                "click",
+                exportSelectedToXlsx
+            );
+        }
+
+
+        const openSettingsButton =
+            document.getElementById("openSmtpSettingsButton");
+
+        if (openSettingsButton) {
+
+            openSettingsButton.addEventListener(
+                "click",
+                openSmtpSettingsModal
+            );
+        }
+
+
+        const closeSettingsButton =
+            document.getElementById("closeSmtpSettingsModal");
+
+        if (closeSettingsButton) {
+
+            closeSettingsButton.addEventListener(
+                "click",
+                closeSmtpSettingsModal
+            );
+        }
+
+
+        const saveSettingsButton =
+            document.getElementById("saveSmtpSettingsButton");
+
+        if (saveSettingsButton) {
+
+            saveSettingsButton.addEventListener(
+                "click",
+                saveSmtpSettings
+            );
+        }
+
+
+        const settingsBackdrop =
+            document.getElementById("smtpSettingsModalBackdrop");
+
+        if (settingsBackdrop) {
+
+            settingsBackdrop.addEventListener("click", event => {
+
+                if (event.target === settingsBackdrop) {
+                    closeSmtpSettingsModal();
+                }
+            });
+        }
+
+
+        const logoutButton =
+            document.getElementById("logoutButton");
+
+        if (logoutButton) {
+
+            logoutButton.addEventListener(
+                "click",
+                logout
+            );
         }
 
     }
