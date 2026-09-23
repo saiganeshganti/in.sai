@@ -1063,6 +1063,44 @@
     }
 
 
+    // =====================================================
+    // SAVE CANDIDATE EMAIL TO TALENT POOL (persists it)
+    // =====================================================
+
+    async function saveCandidateEmail(candidateId, email) {
+
+        const response = await fetch(
+            `${API_BASE_URL}/candidates/${candidateId}/email`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({ email })
+            }
+        );
+
+        let data;
+
+        try {
+            data = await response.json();
+        } catch (jsonError) {
+            throw new Error("The server returned an invalid response.");
+        }
+
+        if (!response.ok || data.status === "error") {
+
+            throw new Error(
+                (data && data.message) ||
+                "Unable to save email."
+            );
+        }
+
+        return data;
+    }
+
+
     function renderQueueItemResult(item, queuedCandidate, subject, body) {
 
         const hasEmail =
@@ -1140,7 +1178,7 @@
 
         if (useManualEmailBtn && manualEmailInput && gmailButton) {
 
-            useManualEmailBtn.addEventListener("click", () => {
+            useManualEmailBtn.addEventListener("click", async () => {
 
                 const value = manualEmailInput.value.trim();
 
@@ -1150,9 +1188,34 @@
                 }
 
                 manualEmailInput.style.borderColor = "";
+
+                // Usable immediately this session either way.
                 queuedCandidate.manualEmail = value;
                 gmailButton.disabled = false;
-                useManualEmailBtn.textContent = "Saved ✓";
+
+                useManualEmailBtn.disabled = true;
+                useManualEmailBtn.textContent = "Saving...";
+
+                try {
+
+                    await saveCandidateEmail(
+                        queuedCandidate.id,
+                        value
+                    );
+
+                    queuedCandidate.email = value;
+                    useManualEmailBtn.textContent = "Saved ✓";
+
+                } catch (error) {
+
+                    console.error(
+                        "SAVE CANDIDATE EMAIL ERROR:",
+                        error
+                    );
+
+                    useManualEmailBtn.disabled = false;
+                    useManualEmailBtn.textContent = "Use this email";
+                }
             });
 
             manualEmailInput.addEventListener("keydown", (event) => {
@@ -1419,8 +1482,8 @@
                         </button>
                     </div>
                     <div class="manual-email-note">
-                        Used for Gmail actions on this page only —
-                        not saved to the Talent Pool.
+                        Saved to this candidate's Talent Pool record
+                        once you click "Use this email".
                     </div>
                 `;
 
@@ -1486,7 +1549,7 @@
             return;
         }
 
-        function applyManualEmail() {
+        async function applyManualEmail() {
 
             const value = manualEmailInput.value.trim();
 
@@ -1503,13 +1566,16 @@
             }
 
             manualEmailInput.style.borderColor = "";
+
+            // Usable immediately this session, regardless of whether
+            // the save to the Talent Pool succeeds below.
             manualEmailOverride = value;
 
             const statusText =
                 document.getElementById("candidateEmailStatusText");
 
             if (statusText) {
-                statusText.textContent = manualEmailOverride;
+                statusText.textContent = value;
             }
 
             const emailLine =
@@ -1519,12 +1585,54 @@
                 emailLine.classList.add("email-override-active");
             }
 
-            useManualEmailBtn.textContent = "Saved ✓";
+            useManualEmailBtn.disabled = true;
+            useManualEmailBtn.textContent = "Saving...";
 
-            showStatus(
-                "Email saved for this session. Gmail actions are now available.",
-                "success"
-            );
+            try {
+
+                await saveCandidateEmail(
+                    selectedCandidate.id,
+                    value
+                );
+
+                // Now a real candidate email, not just a session override.
+                selectedCandidate.email = value;
+                manualEmailOverride = "";
+
+                const candidateInList =
+                    candidates.find(function(candidate) {
+                        return String(candidate.id) ===
+                            String(selectedCandidate.id);
+                    });
+
+                if (candidateInList) {
+                    candidateInList.email = value;
+                }
+
+                useManualEmailBtn.textContent = "Saved ✓";
+
+                showStatus(
+                    "Email saved to this candidate's Talent Pool record.",
+                    "success"
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "SAVE CANDIDATE EMAIL ERROR:",
+                    error
+                );
+
+                useManualEmailBtn.disabled = false;
+                useManualEmailBtn.textContent = "Use this email";
+
+                showStatus(
+                    "Email is usable for this session, but couldn't be " +
+                    "saved permanently: " +
+                    (error.message || "Unknown error."),
+                    "error"
+                );
+            }
         }
 
         useManualEmailBtn.addEventListener(
