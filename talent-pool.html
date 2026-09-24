@@ -12,6 +12,31 @@
 
     <title>Talent Pool — In SAI</title>
 
+    <!-- =====================================================
+         INSTANT AUTH CHECK
+         Runs before the page paints, so a logged-out visitor
+         is sent to /login.html immediately instead of seeing
+         the Talent Pool flash on screen first. Page stays
+         invisible until talent_pool.js confirms login and
+         reveals it (see requireAuthOrRedirect()).
+    ====================================================== -->
+
+    <script>
+        (function () {
+            try {
+                if (!localStorage.getItem("insai_auth_token")) {
+                    window.location.replace("/login.html");
+                }
+            } catch (e) {}
+        })();
+    </script>
+
+    <style>
+        html {
+            visibility: hidden;
+        }
+    </style>
+
     <link
         rel="stylesheet"
         href="/style.css"
@@ -225,14 +250,21 @@
     <header class="navbar">
 
 
-        <div class="logo">
+        <a
+            class="logo"
+            href="/"
+            style="text-decoration:none; color:inherit; cursor:pointer; display:flex; align-items:center;"
+            title="Back to Search"
+        >
 
             <img
+                class="in-sai-logo"
                 src="/in-sai-logo.png"
-                alt="In SAI — AI Recruiter"
+                alt="In SAI"
+                style="display:block; width:150px; height:46px; object-fit:contain; object-position:left center;"
             >
 
-        </div>
+        </a>
 
 
         <nav>
