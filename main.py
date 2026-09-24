@@ -107,30 +107,55 @@ def _run_migrations():
     try:
         inspector = sa_inspect(engine)
 
-        if "candidates" not in inspector.get_table_names():
-            return
-
-        existing_columns = {
-            column["name"]
-            for column in inspector.get_columns("candidates")
-        }
-
         is_postgres = engine.dialect.name == "postgresql"
         false_value = "FALSE" if is_postgres else "0"
         datetime_type = "TIMESTAMP" if is_postgres else "DATETIME"
 
-        migrations = [
-            ("notes", "ALTER TABLE candidates ADD COLUMN notes TEXT"),
-            ("do_not_contact", f"ALTER TABLE candidates ADD COLUMN do_not_contact BOOLEAN NOT NULL DEFAULT {false_value}"),
-            ("last_contacted", f"ALTER TABLE candidates ADD COLUMN last_contacted {datetime_type}"),
-            ("emails_sent", "ALTER TABLE candidates ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0"),
-        ]
+        if "candidates" in inspector.get_table_names():
 
-        for column_name, statement in migrations:
-            if column_name not in existing_columns:
-                print(f"MIGRATION: adding missing column '{column_name}' to candidates")
-                with engine.begin() as connection:
-                    connection.execute(sql_text(statement))
+            existing_columns = {
+                column["name"]
+                for column in inspector.get_columns("candidates")
+            }
+
+            migrations = [
+                ("notes", "ALTER TABLE candidates ADD COLUMN notes TEXT"),
+                ("do_not_contact", f"ALTER TABLE candidates ADD COLUMN do_not_contact BOOLEAN NOT NULL DEFAULT {false_value}"),
+                ("last_contacted", f"ALTER TABLE candidates ADD COLUMN last_contacted {datetime_type}"),
+                ("emails_sent", "ALTER TABLE candidates ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0"),
+            ]
+
+            for column_name, statement in migrations:
+                if column_name not in existing_columns:
+                    print(f"MIGRATION: adding missing column '{column_name}' to candidates")
+                    with engine.begin() as connection:
+                        connection.execute(sql_text(statement))
+
+        # ---------------------------------------------------
+        # "recruiters" table -- login lockout + password reset
+        # columns added after the table already existed in
+        # production.
+        # ---------------------------------------------------
+
+        if "recruiters" in inspector.get_table_names():
+
+            existing_recruiter_columns = {
+                column["name"]
+                for column in inspector.get_columns("recruiters")
+            }
+
+            recruiter_migrations = [
+                ("failed_login_attempts", "ALTER TABLE recruiters ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0"),
+                ("locked_until", f"ALTER TABLE recruiters ADD COLUMN locked_until {datetime_type}"),
+                ("reset_token_hash", "ALTER TABLE recruiters ADD COLUMN reset_token_hash VARCHAR(128)"),
+                ("reset_token_expires", f"ALTER TABLE recruiters ADD COLUMN reset_token_expires {datetime_type}"),
+            ]
+
+            for column_name, statement in recruiter_migrations:
+                if column_name not in existing_recruiter_columns:
+                    print(f"MIGRATION: adding missing column '{column_name}' to recruiters")
+                    with engine.begin() as connection:
+                        connection.execute(sql_text(statement))
 
     except Exception as error:
         # Never crash the app over a migration issue -- log it and
