@@ -283,5 +283,37 @@ class Recruiter(Base):
         nullable=True
     )
 
+    # =========================
+    # Login protection (wrong-password lockout)
+    # =========================
+
+    failed_login_attempts = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0"
+    )
+
+    locked_until = Column(
+        DateTime,
+        nullable=True
+    )
+
+    # =========================
+    # Forgot-password reset link
+    # =========================
+    # Only a SHA-256 hash of the emailed token is stored, never the
+    # token itself.
+
+    reset_token_hash = Column(
+        String(128),
+        nullable=True
+    )
+
+    reset_token_expires = Column(
+        DateTime,
+        nullable=True
+    )
+
     def __repr__(self):
         return f"<Recruiter(id={self.id}, email='{self.email}')>"
