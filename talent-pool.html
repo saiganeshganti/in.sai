@@ -5,10 +5,7 @@
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Talent Pool — In SAI</title>
 
@@ -16,31 +13,22 @@
          INSTANT AUTH CHECK
          Runs before the page paints, so a logged-out visitor
          is sent to /login.html immediately instead of seeing
-         the Talent Pool flash on screen first. Page stays
-         invisible until talent_pool.js confirms login and
-         reveals it (see requireAuthOrRedirect()).
+         the Talent Pool flash on screen first. The page is
+         hidden only while that redirect happens.
     ====================================================== -->
 
     <script>
         (function () {
             try {
                 if (!localStorage.getItem("insai_auth_token")) {
+                    document.documentElement.style.visibility = "hidden";
                     window.location.replace("/login.html");
                 }
             } catch (e) {}
         })();
     </script>
 
-    <style>
-        html {
-            visibility: hidden;
-        }
-    </style>
-
-    <link
-        rel="stylesheet"
-        href="/style.css"
-    >
+    <link rel="stylesheet" href="/style.css">
 
     <style>
 
@@ -249,7 +237,6 @@
 
     <header class="navbar">
 
-
         <a
             class="logo"
             href="/"
@@ -273,10 +260,7 @@
                 Search
             </a>
 
-            <a
-                class="active"
-                href="/talent-pool.html"
-            >
+            <a class="active" href="/talent-pool.html">
                 Talent Pool
             </a>
 
@@ -300,7 +284,6 @@
             </button>
 
         </div>
-
 
     </header>
 
@@ -364,29 +347,19 @@
 
         <section class="hero talent-pool-hero">
 
-
             <div class="eyebrow">
-
                 ✦ CANDIDATE MANAGEMENT
-
             </div>
 
-
             <h1>
-
                 Your
                 <span>Talent Pool.</span>
-
             </h1>
 
-
             <p class="hero-text">
-
                 Candidates you discover and save from Search are
                 organized here for future hiring and outreach.
-
             </p>
-
 
         </section>
 
@@ -401,34 +374,22 @@
 
             <div class="results-header">
 
-
                 <div>
 
                     <div class="section-label">
                         SAVED CANDIDATES
                     </div>
 
-
                     <h2>
-
                         Talent Pool
-
-                        <span id="poolCount">
-                            0
-                        </span>
-
+                        <span id="poolCount">0</span>
                     </h2>
 
                 </div>
 
-
-                <div
-                    id="poolStatus"
-                    class="search-status"
-                >
+                <div id="poolStatus" class="search-status">
                     Loading candidates...
                 </div>
-
 
             </div>
 
@@ -440,280 +401,103 @@
 
             <section class="filters-section">
 
-
                 <div class="section-label">
                     REFINE TALENT POOL
                 </div>
 
-
                 <div class="filters">
 
-
                     <!-- Region -->
-
                     <div class="filter">
-
-                        <label>
-                            Region
-                        </label>
-
+                        <label>Region</label>
                         <select id="poolRegion">
-
-                            <option value="">
-                                All Regions
-                            </option>
-
-                            <option value="North India">
-                                North India
-                            </option>
-
-                            <option value="South India">
-                                South India
-                            </option>
-
-                            <option value="East India">
-                                East India
-                            </option>
-
-                            <option value="West India">
-                                West India
-                            </option>
-
-                            <option value="Central India">
-                                Central India
-                            </option>
-
+                            <option value="">All Regions</option>
+                            <option value="North India">North India</option>
+                            <option value="South India">South India</option>
+                            <option value="East India">East India</option>
+                            <option value="West India">West India</option>
+                            <option value="Central India">Central India</option>
                         </select>
-
                     </div>
-
-
 
                     <!-- State -->
-
                     <div class="filter">
-
-                        <label>
-                            State
-                        </label>
-
-                        <input
-                            id="poolState"
-                            type="text"
-                            placeholder="e.g. Telangana"
-                        >
-
+                        <label>State</label>
+                        <input id="poolState" type="text" placeholder="e.g. Telangana">
                     </div>
-
-
 
                     <!-- City -->
-
                     <div class="filter">
-
-                        <label>
-                            City
-                        </label>
-
-                        <input
-                            id="poolCity"
-                            type="text"
-                            placeholder="e.g. Hyderabad"
-                        >
-
+                        <label>City</label>
+                        <input id="poolCity" type="text" placeholder="e.g. Hyderabad">
                     </div>
-
-
 
                     <!-- Role -->
-
                     <div class="filter">
-
-                        <label>
-                            Role
-                        </label>
-
-                        <input
-                            id="poolRole"
-                            type="text"
-                            placeholder="e.g. Accountant"
-                        >
-
+                        <label>Role</label>
+                        <input id="poolRole" type="text" placeholder="e.g. Accountant">
                     </div>
-
-
 
                     <!-- Experience -->
-
                     <div class="filter">
-
-                        <label>
-                            Experience
-                        </label>
-
+                        <label>Experience</label>
                         <select id="poolExperience">
-
-                            <option value="">
-                                Any experience
-                            </option>
-
-                            <option value="Fresher">
-                                Fresher
-                            </option>
-
-                            <option value="0-2 years">
-                                0-2 years
-                            </option>
-
-                            <option value="2-5 years">
-                                2-5 years
-                            </option>
-
-                            <option value="5+ years">
-                                5+ years
-                            </option>
-
+                            <option value="">Any experience</option>
+                            <option value="Fresher">Fresher</option>
+                            <option value="0-2 years">0-2 years</option>
+                            <option value="2-5 years">2-5 years</option>
+                            <option value="5+ years">5+ years</option>
                         </select>
-
                     </div>
-
-
 
                     <!-- Gender -->
-
                     <div class="filter">
-
-                        <label>
-                            Gender
-                        </label>
-
+                        <label>Gender</label>
                         <select id="poolGender">
-
-                            <option value="">
-                                Any
-                            </option>
-
-                            <option value="Male">
-                                Male
-                            </option>
-
-                            <option value="Female">
-                                Female
-                            </option>
-
-                            <option value="Other">
-                                Other
-                            </option>
-
-                            <option value="Not Specified">
-                                Not Specified
-                            </option>
-
+                            <option value="">Any</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                            <option value="Not Specified">Not Specified</option>
                         </select>
-
                     </div>
-
-
 
                     <!-- Finance Category -->
-
                     <div class="filter">
-
-                        <label>
-                            Finance Category
-                        </label>
-
+                        <label>Finance Category</label>
                         <select id="poolFinanceCategory">
-
-                            <option value="">
-                                All Categories
-                            </option>
-
-                            <option value="Accounting">
-                                Accounting
-                            </option>
-
-                            <option value="Finance">
-                                Finance
-                            </option>
-
-                            <option value="Banking">
-                                Banking
-                            </option>
-
-                            <option value="Investment">
-                                Investment
-                            </option>
-
-                            <option value="Taxation">
-                                Taxation
-                            </option>
-
-                            <option value="Audit">
-                                Audit
-                            </option>
-
-                            <option value="Insurance">
-                                Insurance
-                            </option>
-
+                            <option value="">All Categories</option>
+                            <option value="Accounting">Accounting</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Banking">Banking</option>
+                            <option value="Investment">Investment</option>
+                            <option value="Taxation">Taxation</option>
+                            <option value="Audit">Audit</option>
+                            <option value="Insurance">Insurance</option>
                         </select>
-
                     </div>
-
-
 
                     <!-- Finance Subcategory -->
-
                     <div class="filter">
-
-                        <label>
-                            Specialization
-                        </label>
-
-                        <input
-                            id="poolFinanceSubcategory"
-                            type="text"
-                            placeholder="e.g. Financial Analysis"
-                        >
-
+                        <label>Specialization</label>
+                        <input id="poolFinanceSubcategory" type="text" placeholder="e.g. Financial Analysis">
                     </div>
-
 
                 </div>
 
 
-
                 <!-- Filter buttons -->
+                <div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;">
 
-                <div
-                    style="
-                        display:flex;
-                        gap:12px;
-                        margin-top:20px;
-                        flex-wrap:wrap;
-                    "
-                >
-
-                    <button
-                        id="applyPoolFilters"
-                        class="view-button"
-                        type="button"
-                    >
+                    <button id="applyPoolFilters" class="view-button" type="button">
                         Apply Filters
                     </button>
 
-
-                    <button
-                        id="clearPoolFilters"
-                        class="view-button"
-                        type="button"
-                    >
+                    <button id="clearPoolFilters" class="view-button" type="button">
                         Clear Filters
                     </button>
 
                 </div>
-
 
             </section>
 
@@ -723,24 +507,13 @@
                  LOADING
             ================================================== -->
 
-            <div
-                id="poolLoading"
-                class="loading hidden"
-            >
+            <div id="poolLoading" class="loading hidden">
 
                 <div class="loader"></div>
 
-
                 <div>
-
-                    <strong>
-                        Loading Talent Pool...
-                    </strong>
-
-                    <p>
-                        Retrieving saved candidates.
-                    </p>
-
+                    <strong>Loading Talent Pool...</strong>
+                    <p>Retrieving saved candidates.</p>
                 </div>
 
             </div>
@@ -751,33 +524,18 @@
                  EMPTY STATE
             ================================================== -->
 
-            <div
-                id="poolEmpty"
-                class="empty-state hidden"
-            >
+            <div id="poolEmpty" class="empty-state hidden">
 
-                <div class="empty-icon">
-                    ✦
-                </div>
+                <div class="empty-icon">✦</div>
 
-
-                <h3>
-                    Your Talent Pool is empty
-                </h3>
-
+                <h3>Your Talent Pool is empty</h3>
 
                 <p>
-
                     Search for candidates and add them
                     to your Talent Pool.
-
                 </p>
 
-
-                <a
-                    href="/"
-                    class="view-button"
-                >
+                <a href="/" class="view-button">
                     Find Candidates →
                 </a>
 
@@ -831,10 +589,7 @@
                  CANDIDATE RESULTS
             ================================================== -->
 
-            <div
-                id="talentPoolResults"
-                class="results"
-            >
+            <div id="talentPoolResults" class="results">
 
             </div>
 
@@ -883,21 +638,14 @@
 
     <footer>
 
-
         <div>
-
             © 2026 In SAI AI
-
         </div>
 
-
         <div>
-
             Intelligent recruitment •
             Candidate management
-
         </div>
-
 
     </footer>
 
@@ -929,10 +677,7 @@
 
         document
             .getElementById("applyPoolFilters")
-            .addEventListener(
-                "click",
-                loadFilteredTalentPool
-            );
+            .addEventListener("click", loadFilteredTalentPool);
 
 
         /* -----------------------------------------------------
@@ -941,54 +686,20 @@
 
         document
             .getElementById("clearPoolFilters")
-            .addEventListener(
-                "click",
-                () => {
+            .addEventListener("click", () => {
 
-                    document.getElementById(
-                        "poolRegion"
-                    ).value = "";
+                document.getElementById("poolRegion").value = "";
+                document.getElementById("poolState").value = "";
+                document.getElementById("poolCity").value = "";
+                document.getElementById("poolRole").value = "";
+                document.getElementById("poolExperience").value = "";
+                document.getElementById("poolGender").value = "";
+                document.getElementById("poolFinanceCategory").value = "";
+                document.getElementById("poolFinanceSubcategory").value = "";
 
+                loadTalentPool();
 
-                    document.getElementById(
-                        "poolState"
-                    ).value = "";
-
-
-                    document.getElementById(
-                        "poolCity"
-                    ).value = "";
-
-
-                    document.getElementById(
-                        "poolRole"
-                    ).value = "";
-
-
-                    document.getElementById(
-                        "poolExperience"
-                    ).value = "";
-
-
-                    document.getElementById(
-                        "poolGender"
-                    ).value = "";
-
-
-                    document.getElementById(
-                        "poolFinanceCategory"
-                    ).value = "";
-
-
-                    document.getElementById(
-                        "poolFinanceSubcategory"
-                    ).value = "";
-
-
-                    loadTalentPool();
-
-                }
-            );
+            });
 
 
         /* -----------------------------------------------------
@@ -997,270 +708,89 @@
 
         async function loadFilteredTalentPool() {
 
+            const params = new URLSearchParams();
 
-            const params =
-                new URLSearchParams();
+            const region = document.getElementById("poolRegion").value.trim();
+            const state = document.getElementById("poolState").value.trim();
+            const city = document.getElementById("poolCity").value.trim();
+            const role = document.getElementById("poolRole").value.trim();
+            const experience = document.getElementById("poolExperience").value.trim();
+            const gender = document.getElementById("poolGender").value.trim();
+            const financeCategory = document.getElementById("poolFinanceCategory").value.trim();
+            const financeSubcategory = document.getElementById("poolFinanceSubcategory").value.trim();
 
-
-            const region =
-                document.getElementById(
-                    "poolRegion"
-                ).value.trim();
-
-
-            const state =
-                document.getElementById(
-                    "poolState"
-                ).value.trim();
-
-
-            const city =
-                document.getElementById(
-                    "poolCity"
-                ).value.trim();
-
-
-            const role =
-                document.getElementById(
-                    "poolRole"
-                ).value.trim();
-
-
-            const experience =
-                document.getElementById(
-                    "poolExperience"
-                ).value.trim();
-
-
-            const gender =
-                document.getElementById(
-                    "poolGender"
-                ).value.trim();
-
-
-            const financeCategory =
-                document.getElementById(
-                    "poolFinanceCategory"
-                ).value.trim();
-
-
-            const financeSubcategory =
-                document.getElementById(
-                    "poolFinanceSubcategory"
-                ).value.trim();
-
-
-            if (region) {
-                params.append(
-                    "region",
-                    region
-                );
-            }
-
-
-            if (state) {
-                params.append(
-                    "state",
-                    state
-                );
-            }
-
-
-            if (city) {
-                params.append(
-                    "city",
-                    city
-                );
-            }
-
-
-            if (role) {
-                params.append(
-                    "role",
-                    role
-                );
-            }
-
-
-            if (experience) {
-                params.append(
-                    "experience",
-                    experience
-                );
-            }
-
-
-            if (gender) {
-                params.append(
-                    "gender",
-                    gender
-                );
-            }
-
-
-            if (financeCategory) {
-                params.append(
-                    "finance_category",
-                    financeCategory
-                );
-            }
-
-
-            if (financeSubcategory) {
-                params.append(
-                    "finance_subcategory",
-                    financeSubcategory
-                );
-            }
-
+            if (region) params.append("region", region);
+            if (state) params.append("state", state);
+            if (city) params.append("city", city);
+            if (role) params.append("role", role);
+            if (experience) params.append("experience", experience);
+            if (gender) params.append("gender", gender);
+            if (financeCategory) params.append("finance_category", financeCategory);
+            if (financeSubcategory) params.append("finance_subcategory", financeSubcategory);
 
             const API_BASE_URL = "https://in-sai.onrender.com";
 
-            const url =
-                `${API_BASE_URL}/candidates?` +
-                params.toString();
-
+            const url = `${API_BASE_URL}/candidates?` + params.toString();
 
             try {
 
+                const loading = document.getElementById("poolLoading");
+                const status = document.getElementById("poolStatus");
+                const results = document.getElementById("talentPoolResults");
+                const empty = document.getElementById("poolEmpty");
 
-                const loading =
-                    document.getElementById(
-                        "poolLoading"
-                    );
+                loading.classList.remove("hidden");
+                empty.classList.add("hidden");
+                status.textContent = "Filtering candidates...";
 
+                const response = await fetch(url, { headers: authHeaders() });
 
-                const status =
-                    document.getElementById(
-                        "poolStatus"
-                    );
-
-
-                const results =
-                    document.getElementById(
-                        "talentPoolResults"
-                    );
-
-
-                const empty =
-                    document.getElementById(
-                        "poolEmpty"
-                    );
-
-
-                loading.classList.remove(
-                    "hidden"
-                );
-
-
-                empty.classList.add(
-                    "hidden"
-                );
-
-
-                status.textContent =
-                    "Filtering candidates...";
-
-
-                const response =
-                    await fetch(url);
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        "Unable to filter Talent Pool."
-                    );
-
+                if (response.status === 401) {
+                    logout();
+                    return;
                 }
 
+                if (!response.ok) {
+                    throw new Error("Unable to filter Talent Pool.");
+                }
 
-                const candidates =
-                    await response.json();
+                const candidates = await response.json();
 
+                loading.classList.add("hidden");
 
-                loading.classList.add(
-                    "hidden"
-                );
+                document.getElementById("poolCount").textContent = candidates.length;
 
-
-                document.getElementById(
-                    "poolCount"
-                ).textContent =
-                    candidates.length;
-
-
-                if (
-                    candidates.length === 0
-                ) {
+                if (candidates.length === 0) {
 
                     results.innerHTML = "";
-
-
-                    empty.classList.remove(
-                        "hidden"
-                    );
-
-
-                    status.textContent =
-                        "No matching candidates";
-
-
+                    empty.classList.remove("hidden");
+                    status.textContent = "No matching candidates";
                     return;
 
                 }
 
-
                 status.textContent =
                     `${candidates.length} matching candidate${candidates.length === 1 ? "" : "s"}`;
 
-
-                renderCandidates(
-                    candidates
-                );
-
+                renderCandidates(candidates);
 
             } catch (error) {
 
+                console.error("Filter error:", error);
 
-                console.error(
-                    "Filter error:",
-                    error
-                );
+                document.getElementById("poolLoading").classList.add("hidden");
 
+                document.getElementById("poolStatus").textContent = "Filter failed";
 
-                document.getElementById(
-                    "poolLoading"
-                ).classList.add(
-                    "hidden"
-                );
-
-
-                document.getElementById(
-                    "poolStatus"
-                ).textContent =
-                    "Filter failed";
-
-
-                document.getElementById(
-                    "talentPoolResults"
-                ).innerHTML = `
+                document.getElementById("talentPoolResults").innerHTML = `
 
                     <div class="empty-state">
 
-                        <div class="empty-icon">
-                            ⚠
-                        </div>
+                        <div class="empty-icon">⚠</div>
 
-                        <h3>
-                            Filter failed
-                        </h3>
+                        <h3>Filter failed</h3>
 
-                        <p>
-                            ${escapeHtml(
-                                error.message
-                            )}
-                        </p>
+                        <p>${escapeHtml(error.message)}</p>
 
                     </div>
 
