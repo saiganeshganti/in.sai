@@ -249,7 +249,57 @@ async function loadTalentPool() {
    Render candidates
 --------------------------------------------------------- */
 
+/* ---------------------------------------------------------
+   Clean up candidates saved with a raw LinkedIn search title
+   e.g. "Jane Doe - Financial Analyst | Excel - Acme Corp"
+   becomes name "Jane Doe", role "Financial Analyst | Excel",
+   company "Acme Corp". Best-effort: it only touches names
+   that look like a raw title.
+--------------------------------------------------------- */
+
+function normalizeCandidate(candidate) {
+
+    const raw = (candidate.name || "").trim();
+
+    if (!raw.includes(" - ")) {
+        return candidate;
+    }
+
+    const parts = raw
+        .split(" - ")
+        .map(part => part.trim())
+        .filter(Boolean);
+
+    const name = parts[0];
+    const rest = parts.slice(1);
+
+    // Drop the trailing "LinkedIn" label
+    if (rest.length && /^linkedin$/i.test(rest[rest.length - 1])) {
+        rest.pop();
+    }
+
+    let company = candidate.company;
+
+    if (!company && rest.length > 1) {
+        company = rest.pop();
+    }
+
+    const role =
+        rest.join(" - ").replace(/\s*\|\s*$/, "") ||
+        candidate.current_role;
+
+    return {
+        ...candidate,
+        name: name,
+        current_role: role,
+        company: company || candidate.company
+    };
+}
+
+
 function renderCandidates(candidates) {
+
+    candidates = candidates.map(normalizeCandidate);
 
     const results =
         document.getElementById(
