@@ -130,10 +130,18 @@ async function loadTalentPool() {
 
 
         const response =
-            await fetch(`${API_BASE_URL}/candidates`);
+            await fetch(`${API_BASE_URL}/candidates`, {
+                headers: authHeaders()
+            });
 
-console.log("Talent Pool response status:", response.status);
-console.log("Talent Pool response URL:", response.url);
+        console.log("Talent Pool response status:", response.status);
+        console.log("Talent Pool response URL:", response.url);
+
+
+        if (response.status === 401) {
+            logout();
+            return;
+        }
 
 
         if (!response.ok) {
@@ -991,7 +999,8 @@ async function removeCandidate(candidateId) {
             await fetch(
                 `${API_BASE_URL}/candidates/${candidateId}`,
                 {
-                    method: "DELETE"
+                    method: "DELETE",
+                    headers: authHeaders()
                 }
             );
 
@@ -1038,7 +1047,10 @@ async function toggleDoNotContact(candidateId, newValue) {
                 `${API_BASE_URL}/candidates/${candidateId}/notes`,
                 {
                     method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...authHeaders()
+                    },
                     body: JSON.stringify({ do_not_contact: newValue })
                 }
             );
@@ -1315,7 +1327,7 @@ function exportSelectedToCsv() {
 
 /* ---------------------------------------------------------
    Excel (.xlsx) export (selected candidates only)
-   Uses the SheetJS library loaded via CDN in talent_pool.html.
+   Uses the SheetJS library loaded via CDN in talent-pool.html.
 --------------------------------------------------------- */
 
 function exportSelectedToXlsx() {
@@ -1409,7 +1421,7 @@ async function removeSelectedCandidates() {
 
             const response = await fetch(
                 `${API_BASE_URL}/candidates/${candidate.id}`,
-                { method: "DELETE" }
+                { method: "DELETE", headers: authHeaders() }
             );
 
             if (!response.ok) {
