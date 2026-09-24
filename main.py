@@ -1885,6 +1885,14 @@ def github_lookup(request: GitHubLookupRequest):
 # ADD CANDIDATE TO TALENT POOL
 # =========================================================
 
+def _fit(value, limit):
+    """Trim text so it fits the database column instead of crashing Postgres."""
+    if value is None:
+        return None
+    value = str(value).strip()
+    return value[:limit]
+
+
 @app.post("/candidates")
 def add_candidate(
     candidate: CandidateCreate,
@@ -1895,13 +1903,15 @@ def add_candidate(
     # CHECK LINKEDIN DUPLICATE
     # =====================================================
 
-    if candidate.linkedin_url:
+    linkedin_url = _fit(candidate.linkedin_url, 500)
+
+    if linkedin_url:
 
         existing = (
             db.query(Candidate)
             .filter(
                 Candidate.linkedin_url
-                == candidate.linkedin_url
+                == linkedin_url
             )
             .first()
         )
@@ -1920,13 +1930,15 @@ def add_candidate(
     # CHECK EMAIL DUPLICATE
     # =====================================================
 
-    if candidate.email:
+    email = _fit(candidate.email, 150)
+
+    if email:
 
         existing_email = (
             db.query(Candidate)
             .filter(
                 Candidate.email
-                == candidate.email
+                == email
             )
             .first()
         )
@@ -1942,26 +1954,36 @@ def add_candidate(
             }
 
     # =====================================================
+    # CLEAN NAME
+    # =====================================================
+    # LinkedIn titles look like "Name - Headline | ... | Company".
+    # Keep just the person's name for the name column.
+
+    clean_name = (candidate.name or "").strip()
+
+    if " - " in clean_name:
+        clean_name = clean_name.split(" - ", 1)[0].strip() or clean_name
+
+    # =====================================================
     # CREATE CANDIDATE
     # =====================================================
 
     new_candidate = Candidate(
-        name=candidate.name,
-        email=candidate.email,
-        linkedin_url=candidate.linkedin_url,
-        current_role=candidate.current_role,
-        company=candidate.company,
+        name=_fit(clean_name, 150),
+        email=email,
+        linkedin_url=linkedin_url,
+        current_role=_fit(candidate.current_role, 200),
+        company=_fit(candidate.company, 200),
         skills=candidate.skills,
-        experience=candidate.experience,
-        region=candidate.region,
-        state=candidate.state,
-        city=candidate.city,
-        location=candidate.location,
-        gender=candidate.gender,
-        finance_category=candidate.finance_category,
-        finance_subcategory=
-            candidate.finance_subcategory,
-        status=candidate.status or "New"
+        experience=_fit(candidate.experience, 100),
+        region=_fit(candidate.region, 100),
+        state=_fit(candidate.state, 100),
+        city=_fit(candidate.city, 100),
+        location=_fit(candidate.location, 300),
+        gender=_fit(candidate.gender, 30),
+        finance_category=_fit(candidate.finance_category, 150),
+        finance_subcategory=_fit(candidate.finance_subcategory, 200),
+        status=_fit(candidate.status or "New", 50)
     )
 
     try:
@@ -1984,6 +2006,18 @@ def add_candidate(
             "status": "error",
             "message":
                 "This candidate could not be added because of a database constraint."
+        }
+
+    except Exception as error:
+
+        db.rollback()
+
+        print("ADD CANDIDATE ERROR:", repr(error))
+
+        return {
+            "status": "error",
+            "message":
+                "This candidate could not be saved. Please try again."
         }
 
     return {
