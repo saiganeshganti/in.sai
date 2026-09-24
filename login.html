@@ -22,57 +22,57 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: 20px;
         }
 
         /* =====================================================
-           AUTH CARD — large and easy to read
+           AUTH CARD — medium size
         ====================================================== */
 
         .auth-card {
             width: 100%;
-            max-width: 580px;
-            padding: 52px 52px 44px;
-            border-radius: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            background: rgba(255, 255, 255, 0.04);
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+            max-width: 460px;
+            padding: 38px 38px 32px;
+            border-radius: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.035);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         }
 
         .auth-card h1 {
-            margin: 0 0 10px;
-            font-size: 38px;
-            line-height: 1.15;
+            margin: 0 0 8px;
+            font-size: 28px;
+            line-height: 1.2;
         }
 
         .auth-card p.subtitle {
-            margin: 0 0 34px;
-            font-size: 17px;
+            margin: 0 0 26px;
+            font-size: 15px;
             line-height: 1.5;
-            opacity: 0.75;
+            opacity: 0.72;
         }
 
         .auth-field {
-            margin-bottom: 22px;
+            margin-bottom: 18px;
         }
 
         .auth-field label {
             display: block;
-            margin-bottom: 9px;
-            font-size: 15px;
-            font-weight: 700;
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 600;
         }
 
         .auth-field input {
             width: 100%;
             box-sizing: border-box;
-            padding: 17px 18px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            background: rgba(255, 255, 255, 0.05);
+            padding: 13px 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.045);
             color: inherit;
             font-family: inherit;
-            font-size: 18px;
+            font-size: 16px;
             outline: none;
             cursor: text;
         }
@@ -82,19 +82,19 @@
         }
 
         .auth-field input:focus {
-            border-color: rgba(255, 255, 255, 0.45);
-            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.06);
         }
 
         .auth-submit {
             width: 100%;
-            padding: 18px 20px;
+            padding: 15px 18px;
             border: none;
-            border-radius: 14px;
+            border-radius: 12px;
             font-weight: 700;
-            font-size: 19px;
+            font-size: 16px;
             cursor: pointer;
-            margin-top: 8px;
+            margin-top: 6px;
         }
 
         .auth-submit:disabled {
@@ -103,9 +103,9 @@
         }
 
         .auth-toggle {
-            margin-top: 26px;
+            margin-top: 20px;
             text-align: center;
-            font-size: 16px;
+            font-size: 14px;
             opacity: 0.85;
         }
 
@@ -121,9 +121,9 @@
         }
 
         .auth-status {
-            margin-top: 18px;
-            font-size: 15px;
-            min-height: 20px;
+            margin-top: 14px;
+            font-size: 14px;
+            min-height: 18px;
         }
 
         .auth-status.error {
@@ -138,7 +138,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
             text-decoration: none;
             color: inherit;
             cursor: pointer;
@@ -146,8 +146,8 @@
 
         .auth-brand img {
             display: block;
-            width: 240px;
-            max-width: 70%;
+            width: 190px;
+            max-width: 65%;
             height: auto;
             object-fit: contain;
         }
@@ -159,12 +159,12 @@
             gap: 8px;
             width: 100%;
             box-sizing: border-box;
-            margin-top: 28px;
-            padding: 16px 20px;
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            background: rgba(255, 255, 255, 0.04);
-            font-size: 17px;
+            margin-top: 22px;
+            padding: 13px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.035);
+            font-size: 15px;
             font-weight: 600;
             text-decoration: none;
             color: inherit;
@@ -173,27 +173,23 @@
         }
 
         .back-to-search:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.26);
         }
 
         @media (max-width: 600px) {
 
             .auth-card {
-                padding: 32px 24px 28px;
-                border-radius: 22px;
+                padding: 28px 22px 24px;
+                border-radius: 18px;
             }
 
             .auth-card h1 {
-                font-size: 30px;
-            }
-
-            .auth-card p.subtitle {
-                font-size: 15px;
+                font-size: 25px;
             }
 
             .auth-brand img {
-                width: 200px;
+                width: 170px;
             }
 
         }
