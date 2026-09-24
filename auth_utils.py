@@ -22,6 +22,7 @@ Required environment variables (set these on Render):
 """
 
 import os
+import re
 import hmac
 import time
 import base64
@@ -80,6 +81,55 @@ def verify_password(password: str, stored_hash: str) -> bool:
     )
 
     return hmac.compare_digest(derived.hex(), expected_hex)
+
+
+# =========================================================
+# PASSWORD STRENGTH RULES
+# =========================================================
+# Used on sign-up and on password reset. Existing passwords are not
+# re-checked at login.
+
+_COMMON_PASSWORDS = {
+    "password", "password1", "password123", "12345678", "123456789",
+    "1234567890", "qwerty123", "qwertyuiop", "iloveyou", "admin123",
+    "welcome1", "welcome123", "letmein123", "abc12345", "11111111",
+    "passw0rd", "p@ssword", "p@ssw0rd", "1q2w3e4r"
+}
+
+
+def validate_password_strength(password: str, email: str = ""):
+    """Returns an error message if the password is too weak, else None."""
+    if len(password) < 8:
+        return "Password must be at least 8 characters."
+
+    if not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
+        return "Password must include at least one letter and one number."
+
+    if password.lower() in _COMMON_PASSWORDS:
+        return "That password is too common. Please choose a less predictable one."
+
+    local_part = (email or "").split("@")[0].lower()
+    if len(local_part) >= 4 and local_part in password.lower():
+        return "Password must not contain your email name."
+
+    return None
+
+
+# =========================================================
+# PASSWORD RESET TOKENS
+# =========================================================
+# The raw token is emailed to the recruiter. Only its SHA-256 hash is
+# stored in the database, so a database leak can't be used to reset
+# anyone's password.
+
+def generate_reset_token():
+    """Returns (raw_token, token_hash)."""
+    raw = secrets.token_urlsafe(32)
+    return raw, hash_reset_token(raw)
+
+
+def hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 # =========================================================
