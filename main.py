@@ -27,6 +27,7 @@ import urllib.parse
 from urllib.parse import urljoin, urlparse
 from html.parser import HTMLParser
 from sqlalchemy import text as sql_text
+from sqlalchemy import inspect as sa_inspect
 
 from database import engine, SessionLocal, Base
 from models import Candidate, Recruiter
@@ -90,37 +91,46 @@ Base.metadata.create_all(
 
 
 # =========================================================
-# LIGHTWEIGHT SCHEMA MIGRATION (SQLITE)
+# LIGHTWEIGHT SCHEMA MIGRATION (SQLITE + POSTGRES)
 # =========================================================
 # Base.metadata.create_all() only creates tables that don't exist yet.
-# It does NOT add new columns to a table that's already there. Since
-# the "candidates" table already exists in the deployed .db file, new
-# columns (notes, do_not_contact, last_contacted, emails_sent) need to
-# be added explicitly the first time this starts up with the new code.
+# It does NOT add new columns to a table that's already there. If the
+# "candidates" table already exists in the database, new columns
+# (notes, do_not_contact, last_contacted, emails_sent) need to be added
+# explicitly the first time this starts up with the new code.
 # This is safe to run every startup: it only adds a column if missing.
+#
+# It uses SQLAlchemy's inspector (works on both SQLite and Postgres)
+# instead of the SQLite-only "PRAGMA table_info" command.
 
-def _run_sqlite_migrations():
+def _run_migrations():
     try:
-        with engine.connect() as connection:
-            existing_columns = {
-                row[1]
-                for row in connection.execute(
-                    sql_text("PRAGMA table_info(candidates)")
-                )
-            }
+        inspector = sa_inspect(engine)
 
-            migrations = [
-                ("notes", "ALTER TABLE candidates ADD COLUMN notes TEXT"),
-                ("do_not_contact", "ALTER TABLE candidates ADD COLUMN do_not_contact BOOLEAN NOT NULL DEFAULT 0"),
-                ("last_contacted", "ALTER TABLE candidates ADD COLUMN last_contacted DATETIME"),
-                ("emails_sent", "ALTER TABLE candidates ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0"),
-            ]
+        if "candidates" not in inspector.get_table_names():
+            return
 
-            for column_name, statement in migrations:
-                if column_name not in existing_columns:
-                    print(f"MIGRATION: adding missing column '{column_name}' to candidates")
+        existing_columns = {
+            column["name"]
+            for column in inspector.get_columns("candidates")
+        }
+
+        is_postgres = engine.dialect.name == "postgresql"
+        false_value = "FALSE" if is_postgres else "0"
+        datetime_type = "TIMESTAMP" if is_postgres else "DATETIME"
+
+        migrations = [
+            ("notes", "ALTER TABLE candidates ADD COLUMN notes TEXT"),
+            ("do_not_contact", f"ALTER TABLE candidates ADD COLUMN do_not_contact BOOLEAN NOT NULL DEFAULT {false_value}"),
+            ("last_contacted", f"ALTER TABLE candidates ADD COLUMN last_contacted {datetime_type}"),
+            ("emails_sent", "ALTER TABLE candidates ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0"),
+        ]
+
+        for column_name, statement in migrations:
+            if column_name not in existing_columns:
+                print(f"MIGRATION: adding missing column '{column_name}' to candidates")
+                with engine.begin() as connection:
                     connection.execute(sql_text(statement))
-                    connection.commit()
 
     except Exception as error:
         # Never crash the app over a migration issue -- log it and
@@ -129,7 +139,7 @@ def _run_sqlite_migrations():
         print("MIGRATION ERROR:", repr(error))
 
 
-_run_sqlite_migrations()
+_run_migrations()
 
 
 # =========================================================
@@ -1809,8 +1819,9 @@ def github_lookup(request: GitHubLookupRequest):
 
     # Retry without the location narrowing if it returned nothing.
     if not items and request.location:
+        fallback_query = f'"{name}" in:name'
         fallback_search = _github_api_get(
-            f"/search/users?q={urllib.parse.quote(f'\"{name}\" in:name')}&per_page=8",
+            f"/search/users?q={urllib.parse.quote(fallback_query)}&per_page=8",
             timeout=3.0
         )
         items = (fallback_search.get("items") if isinstance(fallback_search, dict) else None) or []
