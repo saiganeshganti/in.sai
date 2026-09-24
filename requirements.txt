@@ -5,3 +5,4 @@ tavily-python
 google-genai
 python-dotenv
 pydantic
+psycopg2-binary
