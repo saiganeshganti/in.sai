@@ -26,7 +26,8 @@ import urllib.error
 import urllib.parse
 from urllib.parse import urljoin, urlparse
 from html.parser import HTMLParser
-from sqlalchemy import text as sql_text
+from sqlalchemy import text as sql_text, inspect as sqlalchemy_inspect
+from sqlalchemy.schema import CreateColumn
 
 from database import engine, SessionLocal, Base
 from models import Candidate, Recruiter
@@ -90,46 +91,109 @@ Base.metadata.create_all(
 
 
 # =========================================================
-# LIGHTWEIGHT SCHEMA MIGRATION (SQLITE)
+# DATABASE SCHEMA MIGRATION
 # =========================================================
-# Base.metadata.create_all() only creates tables that don't exist yet.
-# It does NOT add new columns to a table that's already there. Since
-# the "candidates" table already exists in the deployed .db file, new
-# columns (notes, do_not_contact, last_contacted, emails_sent) need to
-# be added explicitly the first time this starts up with the new code.
-# This is safe to run every startup: it only adds a column if missing.
+# Base.metadata.create_all() creates missing tables, but it does NOT
+# add newly introduced columns to an existing database table.
+#
+# This application runs locally with SQLite and in production with
+# PostgreSQL on Render, so the old SQLite-only PRAGMA migration is not
+# sufficient. The migration below uses SQLAlchemy's active database
+# dialect and compares the actual database schema with the models.
+#
+# It adds only columns that are missing. Existing tables, rows, data,
+# indexes and columns are left untouched. This is safe to run on every
+# startup. In particular, it fixes the current production issue where
+# recruiters.reset_token and recruiters.reset_token_expires exist in the
+# SQLAlchemy model but not yet in the Render PostgreSQL table.
 
-def _run_sqlite_migrations():
+def _run_schema_migrations():
     try:
-        with engine.connect() as connection:
-            existing_columns = {
-                row[1]
-                for row in connection.execute(
-                    sql_text("PRAGMA table_info(candidates)")
-                )
-            }
+        inspector = sqlalchemy_inspect(engine)
+        preparer = engine.dialect.identifier_preparer
 
-            migrations = [
-                ("notes", "ALTER TABLE candidates ADD COLUMN notes TEXT"),
-                ("do_not_contact", "ALTER TABLE candidates ADD COLUMN do_not_contact BOOLEAN NOT NULL DEFAULT 0"),
-                ("last_contacted", "ALTER TABLE candidates ADD COLUMN last_contacted DATETIME"),
-                ("emails_sent", "ALTER TABLE candidates ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0"),
+        # Check every mapped table rather than maintaining a separate
+        # SQLite-only list. This keeps SQLite and PostgreSQL in sync as
+        # the models evolve.
+        for table in Base.metadata.sorted_tables:
+            table_name = table.name
+
+            try:
+                existing_columns = {
+                    column["name"]
+                    for column in inspector.get_columns(table_name)
+                }
+            except Exception as error:
+                print(
+                    f"MIGRATION: could not inspect table '{table_name}':",
+                    repr(error)
+                )
+                continue
+
+            missing_columns = [
+                column
+                for column in table.columns
+                if column.name not in existing_columns
             ]
 
-            for column_name, statement in migrations:
-                if column_name not in existing_columns:
-                    print(f"MIGRATION: adding missing column '{column_name}' to candidates")
-                    connection.execute(sql_text(statement))
-                    connection.commit()
+            if not missing_columns:
+                continue
+
+            quoted_table = preparer.quote(table_name)
+
+            for column in missing_columns:
+                # A newly-added NOT NULL column without a default cannot
+                # safely be added to a populated table. Skip it rather
+                # than risking a startup failure. New nullable columns
+                # (including the password-reset fields) are added normally.
+                if (
+                    not column.nullable
+                    and column.default is None
+                    and column.server_default is None
+                    and not column.primary_key
+                ):
+                    print(
+                        f"MIGRATION: skipped non-nullable column "
+                        f"'{table_name}.{column.name}' because it has no default"
+                    )
+                    continue
+
+                column_definition = str(
+                    CreateColumn(column).compile(
+                        dialect=engine.dialect
+                    )
+                )
+
+                statement = (
+                    f"ALTER TABLE {quoted_table} "
+                    f"ADD COLUMN {column_definition}"
+                )
+
+                print(
+                    f"MIGRATION: adding missing column "
+                    f"'{table_name}.{column.name}'"
+                )
+
+                with engine.begin() as connection:
+                    connection.execute(
+                        sql_text(statement)
+                    )
+
+            # Refresh the inspector after changes so subsequent checks
+            # see the newly added columns.
+            inspector = sqlalchemy_inspect(engine)
+
+        print("DATABASE SCHEMA MIGRATION: completed")
 
     except Exception as error:
-        # Never crash the app over a migration issue -- log it and
-        # continue, since create_all() already guarantees the table
-        # exists with at least the original columns.
-        print("MIGRATION ERROR:", repr(error))
+        # Log the migration failure clearly. Do not silently hide it.
+        # The application may still start if the missing schema is not
+        # needed by a particular request, but Render logs will show the
+        # exact migration problem.
+        print("DATABASE SCHEMA MIGRATION ERROR:", repr(error))
 
 
-_run_sqlite_migrations()
+_run_schema_migrations()
 
 
 # =========================================================
