@@ -14,6 +14,14 @@ if DATABASE_URL:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+    # Force the psycopg2 driver explicitly. Without this, SQLAlchemy's
+    # dialect auto-detection can pick "psycopg" (v3) instead of "psycopg2"
+    # depending on the environment -- and only psycopg2-binary is installed
+    # (see requirements.txt), so that mismatch crashes the app on startup
+    # with "ModuleNotFoundError: No module named 'psycopg'".
+    if DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 else:
     # Local development: fall back to the SQLite file.
