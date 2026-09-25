@@ -284,7 +284,7 @@ class Recruiter(Base):
     )
 
     # =========================
-    # Login protection (wrong-password lockout)
+    # Login lockout (too many wrong password attempts)
     # =========================
 
     failed_login_attempts = Column(
@@ -300,14 +300,15 @@ class Recruiter(Base):
     )
 
     # =========================
-    # Forgot-password reset link
+    # Password reset
     # =========================
-    # Only a SHA-256 hash of the emailed token is stored, never the
-    # token itself.
+    # reset_token is a single-use, time-limited random value emailed to
+    # the recruiter. Cleared after use or once expired.
 
-    reset_token_hash = Column(
-        String(128),
-        nullable=True
+    reset_token = Column(
+        String(200),
+        nullable=True,
+        index=True
     )
 
     reset_token_expires = Column(
