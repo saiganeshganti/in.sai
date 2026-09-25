@@ -10,17 +10,20 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
     # Production (Render): use Postgres from the DATABASE_URL environment variable.
-    # SQLAlchemy needs "postgresql://", but some providers give "postgres://".
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-    # Force the psycopg2 driver explicitly. Without this, SQLAlchemy's
-    # dialect auto-detection can pick "psycopg" (v3) instead of "psycopg2"
-    # depending on the environment -- and only psycopg2-binary is installed
-    # (see requirements.txt), so that mismatch crashes the app on startup
-    # with "ModuleNotFoundError: No module named 'psycopg'".
-    if DATABASE_URL.startswith("postgresql://"):
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+    #
+    # Render's connection string can arrive in several forms depending on
+    # the account/plan -- "postgres://...", "postgresql://...", or already
+    # "postgresql+psycopg://..." (explicitly requesting the newer psycopg v3
+    # driver). Only psycopg2-binary is installed (see requirements.txt), so
+    # ANY of those needs to be normalized to "postgresql+psycopg2://" or the
+    # app crashes on startup with "ModuleNotFoundError: No module named 'psycopg'".
+    #
+    # Splitting on "://" and replacing the scheme entirely (rather than
+    # string-replacing specific prefixes) makes this correct no matter which
+    # of the above forms Render actually sends.
+    if "://" in DATABASE_URL:
+        _, _, rest = DATABASE_URL.partition("://")
+        DATABASE_URL = f"postgresql+psycopg2://{rest}"
 
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 else:
