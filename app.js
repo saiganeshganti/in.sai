@@ -174,6 +174,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (logoHome) {
 
         const refreshApp = () => {
+
+            try {
+                sessionStorage.removeItem("insai_last_search_state");
+            } catch (error) {
+                /* ignore */
+            }
+
             window.location.reload();
         };
 
@@ -307,6 +314,97 @@ document.addEventListener("DOMContentLoaded", () => {
             targetSet.add(value);
             chip.classList.add("selected");
             updateSkillSummary();
+        }
+    }
+
+
+    /* =====================================================
+       SEARCH STATE PERSISTENCE
+       Keeps the last search's candidates (and the filters
+       used) so navigating away to Talent Pool / Outreach /
+       Login and back to Search doesn't lose the results.
+       Cleared automatically when the person starts a fresh
+       search with different terms, or when they close the
+       tab (sessionStorage, not localStorage).
+    ===================================================== */
+
+    const SEARCH_STATE_KEY = "insai_last_search_state";
+
+    function saveSearchState(state) {
+
+        try {
+
+            sessionStorage.setItem(
+                SEARCH_STATE_KEY,
+                JSON.stringify(state)
+            );
+
+        } catch (error) {
+            /* sessionStorage unavailable (private browsing, etc.) --
+               not critical, just skip persisting. */
+        }
+    }
+
+    function loadSearchState() {
+
+        try {
+
+            const raw =
+                sessionStorage.getItem(SEARCH_STATE_KEY);
+
+            return raw ? JSON.parse(raw) : null;
+
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function restoreSearchState() {
+
+        const state = loadSearchState();
+
+        if (!state || !Array.isArray(state.candidates)) {
+            return;
+        }
+
+        if (searchInput && state.query) {
+            searchInput.value = state.query;
+        }
+
+        if (roleFilter && state.role) {
+            roleFilter.value = state.role;
+        }
+
+        if (experienceFilter && state.experience) {
+            experienceFilter.value = state.experience;
+        }
+
+        if (regionFilter && state.country) {
+
+            regionFilter.value = state.country;
+            loadStates();
+
+            if (stateFilter && state.state) {
+
+                stateFilter.value = state.state;
+                loadCities();
+
+                if (cityFilter && state.city) {
+                    cityFilter.value = state.city;
+                }
+            }
+        }
+
+        (state.technicalSkills || []).forEach(skill => {
+            selectSkillChip(skill, "technical");
+        });
+
+        (state.softSkills || []).forEach(skill => {
+            selectSkillChip(skill, "soft");
+        });
+
+        if (state.candidates.length) {
+            displayResults(state.candidates);
         }
     }
 
@@ -1187,6 +1285,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             displayResults(candidates);
+
+            saveSearchState({
+                candidates,
+                query,
+                role,
+                technicalSkills: technicalSkillsToSend,
+                softSkills: softSkillsToSend,
+                country,
+                state,
+                city,
+                experience
+            });
 
         }
 
@@ -5495,5 +5605,7 @@ ${RECRUITER_BRAND}`;
     ===================================================== */
 
     addOutreachStyles();
+
+    restoreSearchState();
 
 });
