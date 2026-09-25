@@ -273,15 +273,48 @@ function startLockCountdown(seconds) {
 }
 
 /* ---------- API ---------- */
-
+/*
+ * "TypeError: Failed to fetch" means the browser could not establish the
+ * request at all (e.g. the Render backend was cold-starting or briefly
+ * unreachable). This retries temporary network failures (TypeError /
+ * AbortError) with increasing backoff before giving up, matching the
+ * same retry behavior app.js already uses for Search/Talent Pool/Outreach.
+ */
 async function callApi(path, options, timeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs || 90000);
-  try {
-    return await fetch(API_BASE_URL + path, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
+  const effectiveTimeout = Number.isFinite(timeoutMs) ? timeoutMs : 90000;
+  const maxAttempts = 3;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), effectiveTimeout);
+
+    try {
+      const response = await fetch(API_BASE_URL + path, {
+        ...options,
+        cache: "no-store",
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      return response;
+
+    } catch (error) {
+      clearTimeout(timer);
+      lastError = error;
+
+      const temporaryNetworkFailure =
+        error && (error.name === "TypeError" || error.name === "AbortError");
+
+      if (!temporaryNetworkFailure || attempt >= maxAttempts) {
+        break;
+      }
+
+      const retryDelay = attempt === 1 ? 1500 : attempt === 2 ? 4000 : 7000;
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
   }
+
+  throw lastError || new Error("Request failed.");
 }
 
 function postJson(path, body) {
