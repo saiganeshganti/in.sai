@@ -19,7 +19,7 @@ import smtplib
 import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib.request
 import urllib.error
@@ -27,7 +27,6 @@ import urllib.parse
 from urllib.parse import urljoin, urlparse
 from html.parser import HTMLParser
 from sqlalchemy import text as sql_text
-from sqlalchemy import inspect as sa_inspect
 
 from database import engine, SessionLocal, Base
 from models import Candidate, Recruiter
@@ -91,71 +90,37 @@ Base.metadata.create_all(
 
 
 # =========================================================
-# LIGHTWEIGHT SCHEMA MIGRATION (SQLITE + POSTGRES)
+# LIGHTWEIGHT SCHEMA MIGRATION (SQLITE)
 # =========================================================
 # Base.metadata.create_all() only creates tables that don't exist yet.
-# It does NOT add new columns to a table that's already there. If the
-# "candidates" table already exists in the database, new columns
-# (notes, do_not_contact, last_contacted, emails_sent) need to be added
-# explicitly the first time this starts up with the new code.
+# It does NOT add new columns to a table that's already there. Since
+# the "candidates" table already exists in the deployed .db file, new
+# columns (notes, do_not_contact, last_contacted, emails_sent) need to
+# be added explicitly the first time this starts up with the new code.
 # This is safe to run every startup: it only adds a column if missing.
-#
-# It uses SQLAlchemy's inspector (works on both SQLite and Postgres)
-# instead of the SQLite-only "PRAGMA table_info" command.
 
-def _run_migrations():
+def _run_sqlite_migrations():
     try:
-        inspector = sa_inspect(engine)
-
-        is_postgres = engine.dialect.name == "postgresql"
-        false_value = "FALSE" if is_postgres else "0"
-        datetime_type = "TIMESTAMP" if is_postgres else "DATETIME"
-
-        if "candidates" in inspector.get_table_names():
-
+        with engine.connect() as connection:
             existing_columns = {
-                column["name"]
-                for column in inspector.get_columns("candidates")
+                row[1]
+                for row in connection.execute(
+                    sql_text("PRAGMA table_info(candidates)")
+                )
             }
 
             migrations = [
                 ("notes", "ALTER TABLE candidates ADD COLUMN notes TEXT"),
-                ("do_not_contact", f"ALTER TABLE candidates ADD COLUMN do_not_contact BOOLEAN NOT NULL DEFAULT {false_value}"),
-                ("last_contacted", f"ALTER TABLE candidates ADD COLUMN last_contacted {datetime_type}"),
+                ("do_not_contact", "ALTER TABLE candidates ADD COLUMN do_not_contact BOOLEAN NOT NULL DEFAULT 0"),
+                ("last_contacted", "ALTER TABLE candidates ADD COLUMN last_contacted DATETIME"),
                 ("emails_sent", "ALTER TABLE candidates ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0"),
             ]
 
             for column_name, statement in migrations:
                 if column_name not in existing_columns:
                     print(f"MIGRATION: adding missing column '{column_name}' to candidates")
-                    with engine.begin() as connection:
-                        connection.execute(sql_text(statement))
-
-        # ---------------------------------------------------
-        # "recruiters" table -- login lockout + password reset
-        # columns added after the table already existed in
-        # production.
-        # ---------------------------------------------------
-
-        if "recruiters" in inspector.get_table_names():
-
-            existing_recruiter_columns = {
-                column["name"]
-                for column in inspector.get_columns("recruiters")
-            }
-
-            recruiter_migrations = [
-                ("failed_login_attempts", "ALTER TABLE recruiters ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0"),
-                ("locked_until", f"ALTER TABLE recruiters ADD COLUMN locked_until {datetime_type}"),
-                ("reset_token_hash", "ALTER TABLE recruiters ADD COLUMN reset_token_hash VARCHAR(128)"),
-                ("reset_token_expires", f"ALTER TABLE recruiters ADD COLUMN reset_token_expires {datetime_type}"),
-            ]
-
-            for column_name, statement in recruiter_migrations:
-                if column_name not in existing_recruiter_columns:
-                    print(f"MIGRATION: adding missing column '{column_name}' to recruiters")
-                    with engine.begin() as connection:
-                        connection.execute(sql_text(statement))
+                    connection.execute(sql_text(statement))
+                    connection.commit()
 
     except Exception as error:
         # Never crash the app over a migration issue -- log it and
@@ -164,7 +129,7 @@ def _run_migrations():
         print("MIGRATION ERROR:", repr(error))
 
 
-_run_migrations()
+_run_sqlite_migrations()
 
 
 # =========================================================
@@ -181,6 +146,28 @@ _run_migrations()
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+
+# =========================================================
+# SYSTEM EMAIL (separate from any recruiter's own Gmail)
+# =========================================================
+# Used ONLY for transactional emails the platform itself sends --
+# right now, just password reset links. A locked-out recruiter may
+# not have connected their own Gmail yet, so reset emails can't rely
+# on per-recruiter SMTP credentials the way bulk outreach does.
+#
+# Set these on Render as environment variables (can be the same Gmail
+# + App Password you used for the old shared SMTP_EMAIL, or a fresh one):
+#   SYSTEM_SMTP_EMAIL
+#   SYSTEM_SMTP_APP_PASSWORD
+
+SYSTEM_SMTP_EMAIL = os.getenv("SYSTEM_SMTP_EMAIL")
+SYSTEM_SMTP_APP_PASSWORD = os.getenv("SYSTEM_SMTP_APP_PASSWORD")
+
+print("SYSTEM EMAIL CONFIGURED:", bool(SYSTEM_SMTP_EMAIL and SYSTEM_SMTP_APP_PASSWORD))
+
+LOGIN_LOCKOUT_MAX_ATTEMPTS = 5
+LOGIN_LOCKOUT_DURATION_SECONDS = 15 * 60  # 15 minutes
+RESET_TOKEN_VALID_MINUTES = 30
 
 
 def send_email_via_smtp(
@@ -553,6 +540,16 @@ class RecruiterSMTPUpdate(BaseModel):
     smtp_app_password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+    page_url: str = ""  # e.g. "https://your-frontend.com/login.html", used to build the reset link
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
 # =========================================================
 # AUTH DEPENDENCY
 # =========================================================
@@ -814,8 +811,61 @@ def login_recruiter(
 
     recruiter = db.query(Recruiter).filter(Recruiter.email == email).first()
 
+    now = datetime.now(timezone.utc)
+
+    # -----------------------------------------------------
+    # ALREADY LOCKED
+    # -----------------------------------------------------
+
+    if recruiter and recruiter.locked_until:
+        locked_until = recruiter.locked_until
+        if locked_until.tzinfo is None:
+            locked_until = locked_until.replace(tzinfo=timezone.utc)
+
+        if locked_until > now:
+            retry_after = int((locked_until - now).total_seconds())
+            return {
+                "status": "error",
+                "locked": True,
+                "retry_after_seconds": retry_after,
+                "message": "Too many wrong attempts. Please wait before trying again, or reset your password."
+            }
+        else:
+            # Lock has expired -- clear it before continuing.
+            recruiter.locked_until = None
+            recruiter.failed_login_attempts = 0
+            db.commit()
+
+    # -----------------------------------------------------
+    # WRONG EMAIL OR PASSWORD
+    # -----------------------------------------------------
+
     if not recruiter or not auth_utils.verify_password(data.password, recruiter.password_hash):
+
+        if recruiter:
+            recruiter.failed_login_attempts = (recruiter.failed_login_attempts or 0) + 1
+
+            if recruiter.failed_login_attempts >= LOGIN_LOCKOUT_MAX_ATTEMPTS:
+                recruiter.locked_until = now + timedelta(seconds=LOGIN_LOCKOUT_DURATION_SECONDS)
+                db.commit()
+                return {
+                    "status": "error",
+                    "locked": True,
+                    "retry_after_seconds": LOGIN_LOCKOUT_DURATION_SECONDS,
+                    "message": "Too many wrong attempts. Your account is temporarily locked."
+                }
+
+            db.commit()
+
         return {"status": "error", "message": "Incorrect email or password."}
+
+    # -----------------------------------------------------
+    # SUCCESS
+    # -----------------------------------------------------
+
+    recruiter.failed_login_attempts = 0
+    recruiter.locked_until = None
+    db.commit()
 
     token = auth_utils.create_session_token(recruiter.id)
 
@@ -829,6 +879,122 @@ def login_recruiter(
             "smtp_configured": bool(recruiter.smtp_email and recruiter.smtp_app_password_encrypted)
         }
     }
+
+
+# =========================================================
+# FORGOT PASSWORD -- send a reset link by email
+# =========================================================
+# Always returns a generic success-shaped message, whether or not the
+# email matches an account, so this endpoint can't be used to check
+# which emails have accounts (a common security practice). The actual
+# email is only sent when a match is found.
+
+@app.post("/auth/forgot-password")
+def forgot_password(
+    data: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+):
+
+    if not SYSTEM_SMTP_EMAIL or not SYSTEM_SMTP_APP_PASSWORD:
+        return {
+            "status": "unavailable",
+            "message": (
+                "Password reset emails aren't configured on the server yet. "
+                "Set SYSTEM_SMTP_EMAIL and SYSTEM_SMTP_APP_PASSWORD as environment variables."
+            )
+        }
+
+    email = data.email.strip().lower()
+    generic_message = "If an account exists for that email, a reset link has been sent."
+
+    recruiter = db.query(Recruiter).filter(Recruiter.email == email).first()
+
+    if not recruiter:
+        return {"status": "success", "message": generic_message}
+
+    token = auth_utils.generate_reset_token()
+
+    recruiter.reset_token = token
+    recruiter.reset_token_expires = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_VALID_MINUTES)
+
+    db.commit()
+
+    base_url = (data.page_url or "").strip().rstrip("/")
+
+    if base_url:
+        reset_link = f"{base_url}?reset_token={token}"
+    else:
+        # No page_url provided -- still include the raw token so the
+        # recruiter (or support) can construct the link manually.
+        reset_link = f"(your login page)?reset_token={token}"
+
+    email_body = (
+        f"Hi {recruiter.name},\n\n"
+        f"We received a request to reset your In SAI AI Recruiter password.\n\n"
+        f"Click the link below to choose a new password. This link expires in "
+        f"{RESET_TOKEN_VALID_MINUTES} minutes:\n\n"
+        f"{reset_link}\n\n"
+        f"If you didn't request this, you can safely ignore this email -- "
+        f"your password will not be changed.\n\n"
+        f"— In SAI AI Recruiter"
+    )
+
+    try:
+        send_email_via_smtp(
+            to_email=recruiter.email,
+            subject="Reset your In SAI password",
+            body=email_body,
+            from_email=SYSTEM_SMTP_EMAIL,
+            from_app_password=SYSTEM_SMTP_APP_PASSWORD,
+            sender_name="In SAI AI Recruiter"
+        )
+    except Exception as error:
+        print("PASSWORD RESET EMAIL ERROR:", repr(error))
+        # Still return the generic success message -- don't reveal
+        # whether the send failed due to a bad address vs a real error.
+
+    return {"status": "success", "message": generic_message}
+
+
+# =========================================================
+# RESET PASSWORD -- consume the token, set a new password
+# =========================================================
+
+@app.post("/auth/reset-password")
+def reset_password(
+    data: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+
+    token = (data.token or "").strip()
+
+    if not token:
+        return {"status": "error", "message": "Missing reset token."}
+
+    if len(data.new_password) < 8:
+        return {"status": "error", "message": "Password must be at least 8 characters."}
+
+    recruiter = db.query(Recruiter).filter(Recruiter.reset_token == token).first()
+
+    if not recruiter or not recruiter.reset_token_expires:
+        return {"status": "error", "message": "This reset link is invalid. Please request a new one."}
+
+    expires = recruiter.reset_token_expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+
+    if expires < datetime.now(timezone.utc):
+        return {"status": "error", "message": "This reset link has expired. Please request a new one."}
+
+    recruiter.password_hash = auth_utils.hash_password(data.new_password)
+    recruiter.reset_token = None
+    recruiter.reset_token_expires = None
+    recruiter.failed_login_attempts = 0
+    recruiter.locked_until = None
+
+    db.commit()
+
+    return {"status": "success", "message": "Password updated. You can now sign in."}
 
 
 # =========================================================
@@ -1844,9 +2010,8 @@ def github_lookup(request: GitHubLookupRequest):
 
     # Retry without the location narrowing if it returned nothing.
     if not items and request.location:
-        fallback_query = f'"{name}" in:name'
         fallback_search = _github_api_get(
-            f"/search/users?q={urllib.parse.quote(fallback_query)}&per_page=8",
+            f"/search/users?q={urllib.parse.quote(f'\"{name}\" in:name')}&per_page=8",
             timeout=3.0
         )
         items = (fallback_search.get("items") if isinstance(fallback_search, dict) else None) or []
@@ -1910,14 +2075,6 @@ def github_lookup(request: GitHubLookupRequest):
 # ADD CANDIDATE TO TALENT POOL
 # =========================================================
 
-def _fit(value, limit):
-    """Trim text so it fits the database column instead of crashing Postgres."""
-    if value is None:
-        return None
-    value = str(value).strip()
-    return value[:limit]
-
-
 @app.post("/candidates")
 def add_candidate(
     candidate: CandidateCreate,
@@ -1928,15 +2085,13 @@ def add_candidate(
     # CHECK LINKEDIN DUPLICATE
     # =====================================================
 
-    linkedin_url = _fit(candidate.linkedin_url, 500)
-
-    if linkedin_url:
+    if candidate.linkedin_url:
 
         existing = (
             db.query(Candidate)
             .filter(
                 Candidate.linkedin_url
-                == linkedin_url
+                == candidate.linkedin_url
             )
             .first()
         )
@@ -1955,15 +2110,13 @@ def add_candidate(
     # CHECK EMAIL DUPLICATE
     # =====================================================
 
-    email = _fit(candidate.email, 150)
-
-    if email:
+    if candidate.email:
 
         existing_email = (
             db.query(Candidate)
             .filter(
                 Candidate.email
-                == email
+                == candidate.email
             )
             .first()
         )
@@ -1979,36 +2132,26 @@ def add_candidate(
             }
 
     # =====================================================
-    # CLEAN NAME
-    # =====================================================
-    # LinkedIn titles look like "Name - Headline | ... | Company".
-    # Keep just the person's name for the name column.
-
-    clean_name = (candidate.name or "").strip()
-
-    if " - " in clean_name:
-        clean_name = clean_name.split(" - ", 1)[0].strip() or clean_name
-
-    # =====================================================
     # CREATE CANDIDATE
     # =====================================================
 
     new_candidate = Candidate(
-        name=_fit(clean_name, 150),
-        email=email,
-        linkedin_url=linkedin_url,
-        current_role=_fit(candidate.current_role, 200),
-        company=_fit(candidate.company, 200),
+        name=candidate.name,
+        email=candidate.email,
+        linkedin_url=candidate.linkedin_url,
+        current_role=candidate.current_role,
+        company=candidate.company,
         skills=candidate.skills,
-        experience=_fit(candidate.experience, 100),
-        region=_fit(candidate.region, 100),
-        state=_fit(candidate.state, 100),
-        city=_fit(candidate.city, 100),
-        location=_fit(candidate.location, 300),
-        gender=_fit(candidate.gender, 30),
-        finance_category=_fit(candidate.finance_category, 150),
-        finance_subcategory=_fit(candidate.finance_subcategory, 200),
-        status=_fit(candidate.status or "New", 50)
+        experience=candidate.experience,
+        region=candidate.region,
+        state=candidate.state,
+        city=candidate.city,
+        location=candidate.location,
+        gender=candidate.gender,
+        finance_category=candidate.finance_category,
+        finance_subcategory=
+            candidate.finance_subcategory,
+        status=candidate.status or "New"
     )
 
     try:
@@ -2031,18 +2174,6 @@ def add_candidate(
             "status": "error",
             "message":
                 "This candidate could not be added because of a database constraint."
-        }
-
-    except Exception as error:
-
-        db.rollback()
-
-        print("ADD CANDIDATE ERROR:", repr(error))
-
-        return {
-            "status": "error",
-            "message":
-                "This candidate could not be saved. Please try again."
         }
 
     return {
