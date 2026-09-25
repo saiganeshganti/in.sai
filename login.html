@@ -1,447 +1,340 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign In — In SAI</title>
-<link rel="stylesheet" href="/style.css">
-<style>
-body{cursor:default}
-.auth-wrapper{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.auth-card{width:100%;max-width:460px;padding:38px 38px 32px;border-radius:22px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035);box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.auth-card h1{margin:0 0 8px;font-size:28px;line-height:1.2}
-.auth-card p.subtitle{margin:0 0 26px;font-size:15px;line-height:1.5;opacity:.72}
-.auth-field{margin-bottom:18px}
-.auth-field label{display:block;margin-bottom:7px;font-size:14px;font-weight:600}
-.auth-field input[type=text],.auth-field input[type=email],.auth-field input[type=password]{width:100%;box-sizing:border-box;padding:13px 15px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.045);color:inherit;font-family:inherit;font-size:16px;outline:none;cursor:text}
-.auth-field input::placeholder{opacity:.5}
-.auth-field input:focus{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.06)}
-.auth-field input.invalid{border-color:rgba(224,131,138,.75)}
-.password-wrap{position:relative}
-.password-wrap input{padding-right:48px!important}
-.toggle-pass{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:inherit;opacity:.6;cursor:pointer;border-radius:8px}
-.toggle-pass:hover,.toggle-pass:focus-visible{opacity:1;background:rgba(255,255,255,.08)}
-.toggle-pass svg{width:20px;height:20px}
-.field-error{margin-top:6px;font-size:13px;color:#e0838a;min-height:0}
-.rules{list-style:none;margin:10px 0 0;padding:0;font-size:13px}
-.rules li{opacity:.65;margin-bottom:3px}
-.rules li:before{content:"○ "}
-.rules li.ok{opacity:1;color:#7fd99a}
-.rules li.ok:before{content:"✓ "}
-.row-between{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:-4px 0 14px;font-size:14px}
-.remember{display:flex;align-items:center;gap:8px;cursor:pointer}
-.remember input{width:16px;height:16px;cursor:pointer}
-.link-button{background:none;border:none;text-decoration:underline;cursor:pointer;font:inherit;color:inherit;padding:0}
-.auth-submit{width:100%;padding:15px 18px;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;margin-top:6px}
-.auth-submit:disabled{opacity:.6;cursor:default}
-.auth-toggle{margin-top:20px;text-align:center;font-size:14px;opacity:.85}
-.auth-toggle button{background:none;border:none;text-decoration:underline;cursor:pointer;font:inherit;font-weight:700;color:inherit;padding:0}
-.auth-status{margin-top:14px;font-size:14px;min-height:18px;line-height:1.45}
-.auth-status.error{color:#e0838a}
-.auth-status.success{color:#7fd99a}
-.auth-status.info{opacity:.85}
-.auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:24px;text-decoration:none;color:inherit;cursor:pointer}
-.auth-brand img{display:block;width:190px;max-width:65%;height:auto;object-fit:contain}
-.back-to-search{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;margin-top:22px;padding:13px 18px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.035);font-size:15px;font-weight:600;text-decoration:none;color:inherit;cursor:pointer;transition:background .2s,border-color .2s}
-.back-to-search:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.26)}
-[hidden]{display:none!important}
-@media(max-width:600px){.auth-card{padding:28px 22px 24px;border-radius:18px}.auth-card h1{font-size:25px}.auth-brand img{width:170px}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f6f7fb; color:#111; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+    .card { background:#fff; padding:28px; border-radius:10px; box-shadow:0 6px 20px rgba(20,20,40,0.08); width:380px; }
+    h1 { margin:0 0 12px 0; font-size:20px; }
+    label { display:block; margin-top:12px; font-size:13px; color:#333; }
+    input[type="text"], input[type="password"] { width:100%; padding:10px 12px; margin-top:6px; border:1px solid #d9dbe6; border-radius:6px; font-size:14px; }
+    .row { display:flex; align-items:center; justify-content:space-between; margin-top:14px; }
+    .actions { margin-top:18px; display:flex; gap:8px; }
+    button { padding:10px 14px; border-radius:8px; border:0; cursor:pointer; font-weight:600; }
+    button.primary { background:#2563eb; color:#fff; }
+    button.ghost { background:#eef2ff; color:#2563eb; }
+    #login-error { color:#b91c1c; margin-top:12px; display:none; font-size:13px; white-space:pre-wrap; }
+    .small { font-size:13px; color:#555; }
+    .remember { display:flex; align-items:center; gap:8px; margin-top:10px; }
+    a { color:#2563eb; text-decoration:none; }
+    .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(0,0,0,0.08); border-top-color:#2563eb; border-radius:50%; animation:spin 1s linear infinite; vertical-align:middle; margin-left:8px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
 </head>
 <body>
+  <div class="card" role="main" aria-labelledby="login-heading">
+    <h1 id="login-heading">Sign in</h1>
 
-<div class="background"><div class="orb orb-one"></div><div class="orb orb-two"></div><div class="grid"></div></div>
+    <form id="login-form" autocomplete="off" novalidate>
+      <label for="username">Email or username</label>
+      <input id="username" name="username" type="text" autocomplete="username" required />
 
-<div class="auth-wrapper">
-<div class="auth-card">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required />
 
-<a class="auth-brand" href="/" title="Back to Search"><img src="/in-sai-logo.png" alt="In SAI"></a>
+      <div class="remember">
+        <input id="remember" type="checkbox" />
+        <label for="remember" class="small">Remember credentials</label>
+      </div>
 
-<h1 id="authTitle">Welcome back</h1>
-<p class="subtitle" id="authSubtitle">Sign in to your In SAI recruiter account.</p>
+      <div class="actions">
+        <button type="submit" class="primary" id="signin-btn">Sign in</button>
+        <button type="button" id="logout-btn" class="ghost">Log out</button>
+      </div>
 
-<form id="authForm" novalidate>
+      <div id="login-error" role="alert" aria-live="polite"></div>
+    </form>
 
-<div class="auth-field" id="nameField" hidden>
-<label for="nameInput">Your name</label>
-<input id="nameInput" type="text" autocomplete="name" placeholder="Jane Recruiter">
-<div class="field-error" id="nameError"></div>
-</div>
+    <p class="small" style="margin-top:14px">Don't have an account? <a href="/signup.html">Sign up</a></p>
+  </div>
 
-<div class="auth-field" id="emailField">
-<label for="emailInput">Email</label>
-<input id="emailInput" type="email" autocomplete="email" placeholder="you@company.com">
-<div class="field-error" id="emailError"></div>
-</div>
+  <script>
+  /* ---------- Configuration ---------- */
+  const APP_URL = '/talent-pool.html';
+  const TOKEN_KEY = 'auth_token';
+  const REMEMBER_KEY = 'remember_credentials';
+  const SAVED_USER_KEY = 'saved_username';
 
-<div class="auth-field" id="passwordField">
-<label for="passwordInput" id="passwordLabel">Password</label>
-<div class="password-wrap">
-<input id="passwordInput" type="password" autocomplete="current-password" placeholder="Enter your password">
-<button type="button" class="toggle-pass" data-target="passwordInput" aria-label="Show password"></button>
-</div>
-<div class="field-error" id="passwordError"></div>
-<ul class="rules" id="rules" hidden>
-<li id="ruleLength">At least 8 characters</li>
-<li id="ruleMix">At least one letter and one number</li>
-<li id="ruleCommon">Not a common password</li>
-</ul>
-</div>
+  /* ---------- Utility helpers ---------- */
+  function el(selector) { return document.querySelector(selector); }
+  function showLoginError(msg) {
+    const elErr = el('#login-error');
+    if (elErr) {
+      elErr.textContent = msg;
+      elErr.style.display = 'block';
+    } else {
+      alert(msg);
+    }
+  }
+  function clearLoginError() {
+    const elErr = el('#login-error');
+    if (elErr) {
+      elErr.textContent = '';
+      elErr.style.display = 'none';
+    }
+  }
+  function setSigningIn(isSigning) {
+    const btn = el('#signin-btn');
+    if (!btn) return;
+    btn.disabled = isSigning;
+    if (isSigning) {
+      btn.innerHTML = 'Signing in <span class="spinner" aria-hidden="true"></span>';
+    } else {
+      btn.innerHTML = 'Sign in';
+    }
+  }
 
-<div class="auth-field" id="confirmField" hidden>
-<label for="confirmInput">Confirm password</label>
-<div class="password-wrap">
-<input id="confirmInput" type="password" autocomplete="new-password" placeholder="Re-enter your password">
-<button type="button" class="toggle-pass" data-target="confirmInput" aria-label="Show password"></button>
-</div>
-<div class="field-error" id="confirmError"></div>
-</div>
+  /* ---------- Robust callApi with retry/backoff and fallback ---------- */
+  /**
+   * callApi(path, options)
+   * - Retries on network failures (TypeError) or AbortError (timeout)
+   * - Retries up to 3 attempts with delays: 1500ms, 4000ms, 7000ms
+   * - If a relative path fails with a network error, tries again using absolute origin + path
+   * - Uses fetch options that reduce common CORS/credential issues:
+   *     mode: 'cors', credentials: 'same-origin' (change to 'include' if server uses cookies)
+   * - Returns parsed JSON or text on success; throws Error with .status for HTTP errors
+   */
+  async function callApi(path, options = {}) {
+    const maxAttempts = 3;
+    const backoffDelays = [1500, 4000, 7000]; // ms
+    let attempt = 0;
 
-<div class="row-between" id="loginExtras">
-<label class="remember"><input type="checkbox" id="rememberInput"> Remember my email</label>
-<button type="button" class="link-button" id="forgotButton">Forgot password?</button>
-</div>
+    // Normalize options and defaults
+    const baseOptions = Object.assign({
+      method: 'GET',
+      headers: {},
+      mode: 'cors',               // allow cross-origin if server permits
+      credentials: 'same-origin', // change to 'include' if your auth uses cookies
+      timeoutMs: 10000            // default timeout
+    }, options);
 
-<button type="submit" class="auth-submit view-button" id="authSubmitButton">Sign In</button>
+    // Helper to perform a single fetch attempt
+    async function singleFetch(url, fetchOptions) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), fetchOptions.timeoutMs);
+      try {
+        const opts = Object.assign({}, fetchOptions, { signal: controller.signal });
+        delete opts.timeoutMs; // not a fetch option
+        const res = await fetch(url, opts);
+        clearTimeout(timeoutId);
 
-</form>
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const json = await res.json();
+          if (!res.ok) {
+            const err = new Error(json?.message || `Request failed with status ${res.status}`);
+            err.status = res.status;
+            err.body = json;
+            throw err;
+          }
+          return json;
+        } else {
+          const text = await res.text();
+          if (!res.ok) {
+            const err = new Error(text || `Request failed with status ${res.status}`);
+            err.status = res.status;
+            err.body = text;
+            throw err;
+          }
+          return text;
+        }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
+    }
 
-<div class="auth-status" id="authStatus" role="status" aria-live="polite"></div>
+    // Try relative path first, then fallback to absolute origin if network errors occur
+    const originPrefixed = (() => {
+      try {
+        // If path is already absolute (starts with http), return as-is
+        if (/^https?:\/\//i.test(path)) return path;
+        // Otherwise prefix with current origin
+        return window.location.origin.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path);
+      } catch (e) {
+        return path;
+      }
+    })();
 
-<div class="auth-toggle">
-<span id="authToggleText">Don't have an account?</span>
-<button type="button" id="authToggleButton">Create one</button>
-</div>
+    while (true) {
+      attempt++;
+      const tryAbsolute = attempt > 1; // attempt 1: relative; attempt 2+: absolute origin-prefixed
+      const urlToUse = tryAbsolute ? originPrefixed : path;
 
-<a class="back-to-search" href="/">← Back to Search</a>
+      try {
+        return await singleFetch(urlToUse, baseOptions);
+      } catch (err) {
+        // Network/timeout/abort detection
+        const isAbort = err && err.name === 'AbortError';
+        const isTypeError = err instanceof TypeError;
+        const isNetworkLike = isAbort || isTypeError;
 
-</div>
-</div>
+        // If it's an HTTP error (we threw with .status), rethrow immediately (no retry)
+        if (err && typeof err.status === 'number') {
+          throw err;
+        }
 
-<script>
-const API_BASE_URL = "https://in-sai.onrender.com";
-const AUTH_TOKEN_KEY = "insai_auth_token";
-const REMEMBER_EMAIL_KEY = "insai_remembered_email";
-const APP_URL = "/talent-pool.html";
-const COMMON_PASSWORDS = ["password","password1","password123","12345678","123456789","1234567890","qwerty123","qwertyuiop","iloveyou","admin123","welcome1","welcome123","letmein123","abc12345","11111111","passw0rd","p@ssword","p@ssw0rd","1q2w3e4r"];
+        // If it's a network-like error and we have attempts left, retry with backoff
+        if (isNetworkLike && attempt < maxAttempts) {
+          const delay = backoffDelays[Math.min(attempt - 1, backoffDelays.length - 1)];
+          const jitter = Math.floor(Math.random() * 200);
+          await new Promise(r => setTimeout(r, delay + jitter));
+          // continue to next attempt (which will try absolute URL after first failure)
+          continue;
+        }
 
-const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.9 10.9 0 0112 19c-7 0-11-7-11-7a19.8 19.8 0 015.06-5.94M9.9 4.24A10.9 10.9 0 0112 4c7 0 11 7 11 7a19.9 19.9 0 01-3.17 4.19M14.12 14.12a3 3 0 11-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+        // Exhausted retries or non-network error: attach helpful debug info and rethrow
+        const debug = {
+          message: err?.message || String(err),
+          attempt,
+          triedUrl: urlToUse,
+          originPrefixed
+        };
+        const finalErr = new Error(`Network error: ${debug.message}`);
+        finalErr.debug = debug;
+        throw finalErr;
+      }
+    }
+  }
 
-const $ = id => document.getElementById(id);
-const form = $("authForm"), nameInput = $("nameInput"), emailInput = $("emailInput"),
-      passwordInput = $("passwordInput"), confirmInput = $("confirmInput"),
-      rememberInput = $("rememberInput"), submitButton = $("authSubmitButton"),
-      statusEl = $("authStatus");
+  /* Convenience wrapper for POST JSON */
+  async function postJson(path, body, opts = {}) {
+    const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    const options = {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      timeoutMs: opts.timeoutMs || 10000,
+      mode: opts.mode || undefined,
+      credentials: opts.credentials || undefined
+    };
+    return await callApi(path, options);
+  }
 
-let mode = "login";
-let busy = false;
-let lockTimer = null;
-let resetToken = "";
+  /* ---------- Login / Remember credentials flow ---------- */
+  function initLoginForm() {
+    const savedUser = localStorage.getItem(SAVED_USER_KEY);
+    const remember = localStorage.getItem(REMEMBER_KEY) === 'true';
+    const userInput = el('#username');
+    const rememberCheckbox = el('#remember');
 
-/* ---------- helpers ---------- */
+    if (savedUser && userInput) userInput.value = savedUser;
+    if (rememberCheckbox) rememberCheckbox.checked = remember;
+  }
 
-function showStatus(text, type) {
-  statusEl.textContent = text || "";
-  statusEl.className = "auth-status" + (type ? " " + type : "");
-}
+  function checkAutoRedirect() {
+    const remember = localStorage.getItem(REMEMBER_KEY) === 'true';
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (remember && token) {
+      // Optionally validate token with a quick API call here
+      window.location.href = APP_URL;
+    }
+  }
 
-function setFieldError(field, message) {
-  const el = $(field + "Error"), input = $(field + "Input");
-  if (el) el.textContent = message || "";
-  if (input) input.classList.toggle("invalid", !!message);
-}
+  async function handleSuccessfulLogin({ token, username, remember }) {
+    if (!token) throw new Error('No token returned from login');
 
-function clearErrors() {
-  ["name", "email", "password", "confirm"].forEach(f => setFieldError(f, ""));
-  showStatus("");
-}
+    if (remember) {
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(REMEMBER_KEY, 'true');
+      localStorage.setItem(SAVED_USER_KEY, username || '');
+      sessionStorage.removeItem(TOKEN_KEY);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REMEMBER_KEY);
+      sessionStorage.setItem(TOKEN_KEY, token);
+    }
 
-function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+    window.location.href = APP_URL;
+  }
 
-function passwordChecks(pw) {
-  return {
-    length: pw.length >= 8,
-    mix: /[A-Za-z]/.test(pw) && /\d/.test(pw),
-    common: pw.length > 0 && !COMMON_PASSWORDS.includes(pw.toLowerCase())
-  };
-}
+  function logoutAndReturnToLogin() {
+    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REMEMBER_KEY);
+    // keep saved username for convenience; remove if you want a clean slate:
+    // localStorage.removeItem(SAVED_USER_KEY);
+    window.location.href = '/login.html';
+  }
 
-function updateRules() {
-  const c = passwordChecks(passwordInput.value);
-  $("ruleLength").classList.toggle("ok", c.length);
-  $("ruleMix").classList.toggle("ok", c.mix);
-  $("ruleCommon").classList.toggle("ok", c.common);
-}
+  async function onLoginSubmit(event) {
+    event.preventDefault();
+    clearLoginError();
+    setSigningIn(true);
 
-function firstPasswordProblem(pw) {
-  const c = passwordChecks(pw);
-  if (!c.length) return "Password must be at least 8 characters.";
-  if (!c.mix) return "Password must include at least one letter and one number.";
-  if (!c.common) return "That password is too common. Please choose a less predictable one.";
-  return "";
-}
+    const usernameEl = el('#username');
+    const passwordEl = el('#password');
+    const rememberEl = el('#remember');
 
-/* ---------- show / hide password ---------- */
+    const username = usernameEl?.value?.trim() || '';
+    const password = passwordEl?.value || '';
+    const remember = !!(rememberEl && rememberEl.checked);
 
-document.querySelectorAll(".toggle-pass").forEach(btn => {
-  btn.innerHTML = EYE;
-  btn.addEventListener("click", () => {
-    const input = $(btn.dataset.target);
-    const show = input.type === "password";
-    input.type = show ? "text" : "password";
-    btn.innerHTML = show ? EYE_OFF : EYE;
-    btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
-    input.focus();
-  });
-});
-
-/* ---------- modes ---------- */
-
-function setMode(newMode) {
-  mode = newMode;
-  clearErrors();
-  stopLockCountdown();
-  passwordInput.value = "";
-  confirmInput.value = "";
-  passwordInput.type = confirmInput.type = "password";
-  document.querySelectorAll(".toggle-pass").forEach(b => { b.innerHTML = EYE; b.setAttribute("aria-label", "Show password"); });
-
-  const show = (id, on) => { $(id).hidden = !on; };
-  const m = {
-    login:    { title: "Welcome back", sub: "Sign in to your In SAI recruiter account.", btn: "Sign In", tText: "Don't have an account?", tBtn: "Create one", pLabel: "Password", pPlace: "Enter your password", auto: "current-password" },
-    register: { title: "Create your account", sub: "Each recruiter gets their own login and their own sending email.", btn: "Create Account", tText: "Already have an account?", tBtn: "Sign in", pLabel: "Password", pPlace: "Choose a password", auto: "new-password" },
-    forgot:   { title: "Reset your password", sub: "Enter your email and we'll send you a link to choose a new password.", btn: "Send Reset Link", tText: "Remembered it?", tBtn: "Back to sign in", pLabel: "Password", pPlace: "", auto: "current-password" },
-    reset:    { title: "Choose a new password", sub: "Pick a new password for your account.", btn: "Reset Password", tText: "", tBtn: "Back to sign in", pLabel: "New password", pPlace: "Choose a new password", auto: "new-password" }
-  }[mode];
-
-  $("authTitle").textContent = m.title;
-  $("authSubtitle").textContent = m.sub;
-  submitButton.textContent = m.btn;
-  $("authToggleText").textContent = m.tText;
-  $("authToggleButton").textContent = m.tBtn;
-  $("passwordLabel").textContent = m.pLabel;
-  passwordInput.placeholder = m.pPlace;
-  passwordInput.autocomplete = m.auto;
-
-  show("nameField", mode === "register");
-  show("emailField", mode !== "reset");
-  show("passwordField", mode !== "forgot");
-  show("confirmField", mode === "register" || mode === "reset");
-  show("rules", mode === "register" || mode === "reset");
-  show("loginExtras", mode === "login");
-  updateRules();
-
-  const first = mode === "register" ? nameInput : mode === "reset" ? passwordInput : emailInput;
-  setTimeout(() => first.focus(), 0);
-}
-
-$("authToggleButton").addEventListener("click", () => {
-  setMode(mode === "login" ? "register" : "login");
-});
-$("forgotButton").addEventListener("click", () => {
-  const typed = emailInput.value;
-  setMode("forgot");
-  emailInput.value = typed;
-});
-passwordInput.addEventListener("input", () => { if (!$("rules").hidden) updateRules(); setFieldError("password", ""); });
-[nameInput, emailInput, confirmInput].forEach(el => el.addEventListener("input", () => setFieldError(el.id.replace("Input", ""), "")));
-
-/* ---------- lock countdown ---------- */
-
-function stopLockCountdown() {
-  if (lockTimer) { clearInterval(lockTimer); lockTimer = null; }
-  if (!busy) submitButton.disabled = false;
-}
-
-function startLockCountdown(seconds) {
-  stopLockCountdown();
-  let left = Math.max(1, Math.round(seconds));
-  const tick = () => {
-    if (left <= 0) {
-      stopLockCountdown();
-      showStatus("You can try signing in again now.", "info");
+    if (!username || !password) {
+      setSigningIn(false);
+      showLoginError('Please enter both username and password.');
       return;
     }
-    const mm = String(Math.floor(left / 60)).padStart(2, "0"), ss = String(left % 60).padStart(2, "0");
-    showStatus("Too many wrong attempts. Account locked — try again in " + mm + ":" + ss + ", or use “Forgot password?”.", "error");
-    left -= 1;
-  };
-  submitButton.disabled = true;
-  tick();
-  lockTimer = setInterval(tick, 1000);
-}
 
-/* ---------- API ---------- */
-/*
- * "TypeError: Failed to fetch" means the browser could not establish the
- * request at all (e.g. the Render backend was cold-starting or briefly
- * unreachable). This retries temporary network failures (TypeError /
- * AbortError) with increasing backoff before giving up, matching the
- * same retry behavior app.js already uses for Search/Talent Pool/Outreach.
- */
-async function callApi(path, options, timeoutMs) {
-  const effectiveTimeout = Number.isFinite(timeoutMs) ? timeoutMs : 90000;
-  const maxAttempts = 3;
-  let lastError = null;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), effectiveTimeout);
+    // If the browser is offline, show immediate message
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setSigningIn(false);
+      showLoginError('You appear to be offline. Check your network connection and try again.');
+      return;
+    }
 
     try {
-      const response = await fetch(API_BASE_URL + path, {
-        ...options,
-        cache: "no-store",
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-      return response;
+      // If your backend expects a different path, change '/api/login' accordingly.
+      const resp = await postJson('/api/login', { username, password }, { timeoutMs: 12000 });
 
-    } catch (error) {
-      clearTimeout(timer);
-      lastError = error;
+      if (resp && resp.token) {
+        await handleSuccessfulLogin({ token: resp.token, username, remember });
+      } else {
+        setSigningIn(false);
+        showLoginError(resp?.message || 'Login failed. Check credentials.');
+      }
+    } catch (err) {
+      setSigningIn(false);
 
-      const temporaryNetworkFailure =
-        error && (error.name === "TypeError" || error.name === "AbortError");
-
-      if (!temporaryNetworkFailure || attempt >= maxAttempts) {
-        break;
+      // If we have an HTTP status (e.g., 401), show friendly message
+      if (err && err.status === 401) {
+        showLoginError('Incorrect username or password.');
+        return;
       }
 
-      const retryDelay = attempt === 1 ? 1500 : attempt === 2 ? 4000 : 7000;
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      // If callApi attached debug info, show a concise hint and log full debug to console
+      if (err && err.debug) {
+        console.error('callApi debug:', err.debug);
+        showLoginError('Network error: failed to reach the server. Try again. (See console for details.)');
+        return;
+      }
+
+      // Generic fallback
+      console.error('Auth error:', err);
+      showLoginError(err?.message || 'Network error. Please try again.');
     }
   }
 
-  throw lastError || new Error("Request failed.");
-}
+  /* ---------- Wire up events ---------- */
+  document.addEventListener('DOMContentLoaded', () => {
+    initLoginForm();
+    checkAutoRedirect();
 
-function postJson(path, body) {
-  return callApi(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-}
+    const loginForm = el('#login-form');
+    if (loginForm) loginForm.addEventListener('submit', onLoginSubmit);
 
-/* ---------- submit ---------- */
+    const logoutBtn = el('#logout-btn');
+    if (logoutBtn) logoutBtn.addEventListener('click', logoutAndReturnToLogin);
+  });
 
-form.addEventListener("submit", event => { event.preventDefault(); submitAuth(); });
-
-async function submitAuth() {
-  if (busy || submitButton.disabled) return;
-  clearErrors();
-
-  const name = nameInput.value.trim(), email = emailInput.value.trim(), password = passwordInput.value;
-
-  // ----- client-side checks -----
-  let ok = true;
-  if (mode === "register" && !name) { setFieldError("name", "Please enter your name."); ok = false; }
-  if (mode !== "reset") {
-    if (!email) { setFieldError("email", "Please enter your email."); ok = false; }
-    else if (!validEmail(email)) { setFieldError("email", "That doesn't look like a valid email."); ok = false; }
-  }
-  if (mode === "login" && !password) { setFieldError("password", "Please enter your password."); ok = false; }
-  if (mode === "register" || mode === "reset") {
-    const problem = firstPasswordProblem(password);
-    if (problem) { setFieldError("password", problem); ok = false; }
-    else if (confirmInput.value !== password) { setFieldError("confirm", "Passwords don't match."); ok = false; }
-  }
-  if (!ok) return;
-
-  // ----- request -----
-  busy = true;
-  submitButton.disabled = true;
-  const label = submitButton.textContent;
-  submitButton.textContent = { login: "Signing in...", register: "Creating account...", forgot: "Sending...", reset: "Updating..." }[mode];
-  const wakeTimer = setTimeout(() => showStatus("The server is waking up — the first request can take up to a minute. Please wait…", "info"), 4000);
-
-  try {
-    let path, payload;
-    if (mode === "login") { path = "/auth/login"; payload = { email, password }; }
-    else if (mode === "register") { path = "/auth/register"; payload = { name, email, password }; }
-    else if (mode === "forgot") { path = "/auth/forgot-password"; payload = { email, page_url: location.origin + location.pathname }; }
-    else { path = "/auth/reset-password"; payload = { token: resetToken, new_password: password }; }
-
-    const response = await postJson(path, payload);
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok || data.status !== "success") {
-      if (data.locked) { startLockCountdown(data.retry_after_seconds || 900); return; }
-      throw new Error(data.message || "Something went wrong. Please try again.");
-    }
-
-    if (mode === "forgot") { showStatus(data.message, "success"); return; }
-
-    if (mode === "reset") {
-      history.replaceState(null, "", location.pathname);
-      resetToken = "";
-      setMode("login");
-      emailInput.value = localStorage.getItem(REMEMBER_EMAIL_KEY) || "";
-      showStatus(data.message || "Password updated. You can now sign in.", "success");
-      return;
-    }
-
-    if (mode === "login") {
-      if (rememberInput.checked) localStorage.setItem(REMEMBER_EMAIL_KEY, email);
-      else localStorage.removeItem(REMEMBER_EMAIL_KEY);
-    }
-
-    localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-    showStatus("✓ Success — redirecting...", "success");
-    window.location.href = APP_URL;
-
-  } catch (error) {
-    console.error("Auth error:", error);
-    if (error.name === "AbortError") showStatus("The server took too long to respond. Please try again.", "error");
-    else if (error instanceof TypeError) showStatus("Could not reach the server. Check your internet connection and try again.", "error");
-    else showStatus(error.message || "Something went wrong.", "error");
-  } finally {
-    clearTimeout(wakeTimer);
-    busy = false;
-    submitButton.textContent = label;
-    if (!lockTimer) submitButton.disabled = false;
-    if (statusEl.classList.contains("info") && statusEl.textContent.startsWith("The server is waking")) showStatus("");
-  }
-}
-
-/* ---------- startup ---------- */
-
-async function checkExistingSession() {
-  const params = new URLSearchParams(location.search);
-
-  if (params.get("expired")) {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    history.replaceState(null, "", location.pathname);
-    showStatus("Your session has expired. Please sign in again.", "info");
-    return;
-  }
-
-  const token = localStorage.getItem(AUTH_TOKEN_KEY);
-  if (!token) return;
-
-  showStatus("Checking your session…", "info");
-  try {
-    const response = await callApi("/auth/me", { headers: { Authorization: "Bearer " + token } }, 60000);
-    if (response.ok) { window.location.href = APP_URL; return; }
-    if (response.status === 401) {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      showStatus("Your session has expired. Please sign in again.", "info");
-      return;
-    }
-  } catch (e) { /* fall through to the normal login form */ }
-  showStatus("");
-}
-
-const savedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY);
-if (savedEmail) { emailInput.value = savedEmail; rememberInput.checked = true; }
-
-const urlToken = new URLSearchParams(location.search).get("reset_token");
-if (urlToken) {
-  resetToken = urlToken;
-  setMode("reset");
-} else {
-  setMode("login");
-  checkExistingSession();
-}
-</script>
-
+  /* Expose for other scripts if needed */
+  window.appAuth = {
+    callApi,
+    postJson,
+    logoutAndReturnToLogin
+  };
+  </script>
 </body>
 </html>
