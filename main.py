@@ -1409,6 +1409,8 @@ def recruit(
     request: RecruitmentRequest
 ):
 
+    search_started_at = time.perf_counter()
+
     role = request.role.strip()
 
     if not role:
@@ -1828,13 +1830,17 @@ def recruit(
     unique_results = unique_results[:20]
 
     # =====================================================
-    # PUBLIC EMAIL EXTRACTION
+    # PARALLEL EMAIL + GITHUB-LINK ENRICHMENT
     # =====================================================
-    # IMPORTANT: Do not reduce discovery because an email is missing.
-    # Every returned profile is kept. If Tavily exposes a public email in
-    # title/content/raw_content, keep that original email; otherwise None.
-    # No email guessing and no extra per-candidate search calls.
-    for result in unique_results:
+    # IMPORTANT:
+    # - Every candidate is kept even when no email/GitHub is found.
+    # - No guessed emails are generated.
+    # - No extra web/GitHub search is performed here.
+    # - All returned candidates are fully processed before the response.
+    #
+    # The work below is independent for each candidate, so doing it
+    # concurrently removes unnecessary one-by-one waiting.
+    def _enrich_candidate(result):
         searchable_text = "\n".join(
             value
             for value in [
@@ -1868,6 +1874,18 @@ def recruit(
             result.get("email") or "Email Not Available"
         )
 
+        return result
+
+    if unique_results:
+        with ThreadPoolExecutor(
+            max_workers=min(8, len(unique_results))
+        ) as executor:
+            enriched_results = list(
+                executor.map(_enrich_candidate, unique_results)
+            )
+
+        unique_results = enriched_results
+
     # Do NOT de-duplicate email addresses.
     # Ten returned profiles must be allowed to show ten public email IDs,
     # including the original value found for each profile.
@@ -1886,6 +1904,22 @@ def recruit(
         1
         for result in unique_results
         if result.get("source") == "Public Web"
+    )
+
+    # =====================================================
+    # SEARCH TIMING
+    # =====================================================
+
+    search_duration = round(
+        time.perf_counter() - search_started_at,
+        2
+    )
+
+    print(
+        "RECRUIT SEARCH COMPLETED:",
+        f"{search_duration}s",
+        "| candidates:",
+        len(unique_results)
     )
 
     # =====================================================
