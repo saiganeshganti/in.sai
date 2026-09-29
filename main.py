@@ -2595,6 +2595,99 @@ def _skills_for_email(skills):
     ]
 
 
+def _is_temporary_gemini_error(error):
+    """Identify temporary Gemini/API failures that are safe to retry."""
+    error_text = str(error).upper()
+
+    status_code = (
+        getattr(error, "code", None)
+        or getattr(error, "status_code", None)
+        or getattr(error, "status", None)
+    )
+
+    try:
+        status_code = int(status_code)
+    except (TypeError, ValueError):
+        status_code = None
+
+    return (
+        status_code in {429, 500, 502, 503, 504}
+        or any(
+            marker in error_text
+            for marker in (
+                "429",
+                "500 INTERNAL",
+                "502",
+                "503",
+                "504",
+                "UNAVAILABLE",
+                "RESOURCE_EXHAUSTED",
+                "TOO MANY REQUESTS",
+                "DEADLINE_EXCEEDED",
+            )
+        )
+    )
+
+
+def _generate_gemini_content_with_retry(prompt, max_attempts=3):
+    """
+    Generate content with the existing primary Gemini model first.
+
+    The primary model remains gemini-3.6-flash and keeps the existing
+    retry behavior. If all primary attempts fail because of a temporary
+    availability/rate-limit error, automatically try the fallback Flash
+    model once. Non-temporary errors are raised immediately.
+    """
+    primary_model = "gemini-3.6-flash"
+    fallback_model = "gemini-3.5-flash"
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return gemini_client.models.generate_content(
+                model=primary_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(
+                        thinking_level="minimal"
+                    ),
+                    max_output_tokens=500
+                )
+            )
+        except Exception as error:
+            if not _is_temporary_gemini_error(error):
+                raise
+
+            if attempt >= max_attempts:
+                print(
+                    f"Primary Gemini model {primary_model} remained unavailable "
+                    f"after {max_attempts} attempts. Trying fallback model {fallback_model}."
+                )
+                try:
+                    return gemini_client.models.generate_content(
+                        model=fallback_model,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            thinking_config=types.ThinkingConfig(
+                                thinking_level="minimal"
+                            ),
+                            max_output_tokens=500
+                        )
+                    )
+                except Exception as fallback_error:
+                    print(
+                        f"Fallback Gemini model {fallback_model} also failed: "
+                        f"{repr(fallback_error)}"
+                    )
+                    raise fallback_error from error
+
+            delay_seconds = 2 ** attempt
+            print(
+                f"Temporary Gemini error on attempt {attempt}/{max_attempts}: "
+                f"{repr(error)}. Retrying in {delay_seconds} seconds."
+            )
+            time.sleep(delay_seconds)
+
+
 @app.post("/generate-email")
 def generate_email(
     request: EmailGenerationRequest,
@@ -2853,41 +2946,7 @@ Return exactly:
         print("Model: gemini-3.6-flash")
         print("========================================")
 
-        # Retry only temporary Gemini availability/rate-limit failures.
-        # Keep the existing model, prompt, and generation settings unchanged.
-        response = None
-        for attempt in range(3):
-            try:
-                response = gemini_client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        thinking_config=types.ThinkingConfig(
-                            thinking_level="minimal"
-                        ),
-                        max_output_tokens=500
-                    )
-                )
-                break
-            except Exception as gemini_error:
-                error_text = str(gemini_error).upper()
-                is_temporary_error = (
-                    "503" in error_text
-                    or "UNAVAILABLE" in error_text
-                    or "429" in error_text
-                    or "RESOURCE_EXHAUSTED" in error_text
-                )
-
-                if not is_temporary_error or attempt == 2:
-                    raise
-
-                retry_delay = 2 ** (attempt + 1)
-                print(
-                    f"Gemini temporarily unavailable. "
-                    f"Retrying in {retry_delay} seconds "
-                    f"(attempt {attempt + 2}/3)."
-                )
-                time.sleep(retry_delay)
+        response = _generate_gemini_content_with_retry(prompt)
 
         generated_text = ""
 
@@ -3082,18 +3141,15 @@ Return exactly:
         )
         print("========================================")
 
-        error_text = str(error).upper()
-        if (
-            "503" in error_text
-            or "UNAVAILABLE" in error_text
-            or "429" in error_text
-            or "RESOURCE_EXHAUSTED" in error_text
-        ):
+        if isinstance(error, HTTPException):
+            raise error
+
+        if _is_temporary_gemini_error(error):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Gemini is temporarily unavailable or busy. "
-                    "Please try generating the email again shortly."
+                    "Gemini is temporarily unavailable or rate-limited. "
+                    "Please try generating the email again in a few moments."
                 )
             ) from error
 
