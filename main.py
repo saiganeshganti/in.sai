@@ -2853,16 +2853,41 @@ Return exactly:
         print("Model: gemini-3.6-flash")
         print("========================================")
 
-        response = gemini_client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_level="minimal"
-                ),
-                max_output_tokens=500
-            )
-        )
+        # Retry only temporary Gemini availability/rate-limit failures.
+        # Keep the existing model, prompt, and generation settings unchanged.
+        response = None
+        for attempt in range(3):
+            try:
+                response = gemini_client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        thinking_config=types.ThinkingConfig(
+                            thinking_level="minimal"
+                        ),
+                        max_output_tokens=500
+                    )
+                )
+                break
+            except Exception as gemini_error:
+                error_text = str(gemini_error).upper()
+                is_temporary_error = (
+                    "503" in error_text
+                    or "UNAVAILABLE" in error_text
+                    or "429" in error_text
+                    or "RESOURCE_EXHAUSTED" in error_text
+                )
+
+                if not is_temporary_error or attempt == 2:
+                    raise
+
+                retry_delay = 2 ** (attempt + 1)
+                print(
+                    f"Gemini temporarily unavailable. "
+                    f"Retrying in {retry_delay} seconds "
+                    f"(attempt {attempt + 2}/3)."
+                )
+                time.sleep(retry_delay)
 
         generated_text = ""
 
@@ -3057,13 +3082,28 @@ Return exactly:
         )
         print("========================================")
 
+        error_text = str(error).upper()
+        if (
+            "503" in error_text
+            or "UNAVAILABLE" in error_text
+            or "429" in error_text
+            or "RESOURCE_EXHAUSTED" in error_text
+        ):
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Gemini is temporarily unavailable or busy. "
+                    "Please try generating the email again shortly."
+                )
+            ) from error
+
         raise HTTPException(
             status_code=500,
             detail=(
                 "AI email generation failed. "
-                "Check the terminal for the exact Gemini error."
+                "Check the server logs for the exact Gemini error."
             )
-        )
+        ) from error
 
 
 # =========================================================
